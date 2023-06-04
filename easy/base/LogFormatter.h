@@ -8,9 +8,11 @@
 #include <vector>
 
 #include "LogEvent.h"
+#include "Logger.h"
 
 namespace easy
 {
+
 // 日志格式器
 class LogFormatter
 {

@@ -1,4 +1,5 @@
 #include "LogFormatter.h"
+#include "Logger.h"
 
 #include <functional>
 #include <map>

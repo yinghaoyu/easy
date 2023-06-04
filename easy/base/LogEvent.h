@@ -1,13 +1,15 @@
 #ifndef __EASY_LOG_EVENT_H__
 #define __EASY_LOG_EVENT_H__
 
+#include "LogLevel.h"
+
 #include <memory>
 #include <sstream>
 
-#include "Logger.h"
-
 namespace easy
 {
+class Logger;
+
 // 日志事件
 class LogEvent
 {
@@ -34,7 +36,7 @@ class LogEvent
   int64_t timestamp() const { return timestamp_; }
   const std::string &threadName() const { return threadName_; }
   std::string content() const { return contentSS_.str(); }
-  Logger::ptr logger() const { return logger_; }
+  std::shared_ptr<Logger> logger() const { return logger_; }
   LogLevel::Level level() const { return level_; }
 
   std::stringstream &contentSS() { return contentSS_; }
@@ -60,14 +62,14 @@ class LogEvent
 
  private:
   const char *fileName_ = nullptr;  // 文件名
-  int32_t line_ = 0;                 // 行号
-  uint32_t elapse_ = 0;              // 程序启动开始到现在的毫秒数
+  int32_t line_ = 0;                // 行号
+  uint32_t elapse_ = 0;             // 程序启动开始到现在的毫秒数
   uint32_t threadId_ = 0;           // 线程id
   uint32_t coroutineId_ = 0;        // 协程id
   int64_t timestamp_ = 0;           // 时间戳
   std::string threadName_;          // 线程名
   std::stringstream contentSS_;     // 日志内容流
-  Logger::ptr logger_;               // 日志事件归属的日志器
+  std::shared_ptr<Logger> logger_;  // 日志事件归属的日志器
   LogLevel::Level level_;
 };
 

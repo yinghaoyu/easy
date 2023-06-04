@@ -12,6 +12,7 @@ set(CXX_FLAGS
   -Werror # warn error 意为把警告当错误处理
   -Wconversion # 警告可能改变值的隐式转换
   -Wno-unused-parameter # 忽略函数定义有未使用的参数
+  -Wno-unused-function # 忽略未使用的函数
   -Wold-style-cast # 如果使用旧样式（C 样式）强制转换为非void类型，则发出警告
   -Woverloaded-virtual # 如果基类函数被子类函数隐藏，就引发编译错误，注意覆盖、隐藏、重载区别
   -Wshadow # 当一个局部变量遮盖了另一个局部变量，或者全局变量，则发出警告

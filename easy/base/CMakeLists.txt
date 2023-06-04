@@ -1,8 +1,10 @@
 set(base_SRCS
+  LogLevel.cc
   LogAppender.cc
   LogEvent.cc
   LogFormatter.cc
   Logger.cc
+  Coroutine.cc
   common.cc
   )
 

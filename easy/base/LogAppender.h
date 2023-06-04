@@ -4,7 +4,7 @@
 #include <fstream>
 #include <memory>
 
-#include "logger.h"
+#include "LogLevel.h"
 
 namespace easy
 {

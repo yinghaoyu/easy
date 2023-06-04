@@ -1,13 +1,10 @@
-#include "easy/base/LogAppender.h"
-#include "easy/base/LogFormatter.h"
-#include "easy/base/Logger.h"
-#include "easy/base/common.h"
+#include "easy/base/easy_define.h"
 
 #include <unistd.h>
 #include <iostream>
 #include <memory>
 
-int main()
+void test_logger()
 {
   auto logger = std::make_shared<easy::Logger>("root");
   logger->addAppender(std::make_shared<easy::ConsoleLogAppender>());
@@ -38,5 +35,10 @@ int main()
 
   auto root = EASY_LOG_ROOT();
   EASY_LOG_INFO(root) << "root logger";
+}
+
+int main()
+{
+  test_logger();
   return 0;
 }

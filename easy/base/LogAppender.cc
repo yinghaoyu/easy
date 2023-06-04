@@ -1,5 +1,6 @@
 #include "LogAppender.h"
 #include "LogFormatter.h"
+#include "Logger.h"
 
 #include <iostream>
 
