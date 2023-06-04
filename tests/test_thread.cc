@@ -14,7 +14,7 @@ void thread_cb()
 {
   for (int i = 0; i < times; ++i)
   {
-    easy::MutexGuard lock(mutex);
+    easy::MutexLockGuard lock(mutex);
     EASY_LOG_DEBUG(logger) << count;
     ++count;
   }
@@ -26,8 +26,7 @@ int main()
   int numThread = 100;
   for (int i = 0; i < numThread; ++i)
   {
-    easy::Thread::ptr thr(
-        new easy::Thread(&thread_cb, "name_" + std::to_string(i * 2)));
+    easy::Thread::ptr thr = std::make_shared<easy::Thread>(&thread_cb);
     thrs.push_back(thr);
   }
 

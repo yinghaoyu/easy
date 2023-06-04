@@ -3,8 +3,8 @@
 
 #include <assert.h>
 
-#include "common.h"
 #include "Logger.h"
+#include "common.h"
 
 #if defined __GNUC__ || defined __llvm__
 #define EASY_LIKELY(x) __builtin_expect(!!(x), 1)
@@ -33,11 +33,10 @@
     assert(x);                                              \
   }
 
-#define EASY_CHECK(x)                                   \
-  if (EASY_UNLIKELY(x))                                 \
-  {                                                     \
-    EASY_LOG_ERROR(EASY_LOG_ROOT()) << "check: " << #x; \
-    assert(x);                                          \
+#define EASY_CHECK(x)   \
+  if (EASY_UNLIKELY(x)) \
+  {                     \
+    assert(x);          \
   }
 
 #endif

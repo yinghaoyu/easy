@@ -9,17 +9,62 @@ Mutex::Mutex()
 }
 Mutex::~Mutex()
 {
-  pthread_mutex_destroy(&mutex_);
+  EASY_CHECK(pthread_mutex_destroy(&mutex_));
 }
 
 void Mutex::lock()
 {
-  pthread_mutex_lock(&mutex_);
+  EASY_CHECK(pthread_mutex_lock(&mutex_));
 }
 
 void Mutex::unlock()
 {
-  pthread_mutex_unlock(&mutex_);
+  EASY_CHECK(pthread_mutex_unlock(&mutex_));
+}
+
+RWMutex::RWMutex()
+{
+  EASY_CHECK(pthread_rwlock_init(&mutex_, NULL));
+}
+
+RWMutex::~RWMutex()
+{
+  EASY_CHECK(pthread_rwlock_destroy(&mutex_));
+}
+
+void RWMutex::rdlock()
+{
+  EASY_CHECK(pthread_rwlock_rdlock(&mutex_));
+}
+
+void RWMutex::wrlock()
+{
+  EASY_CHECK(pthread_rwlock_wrlock(&mutex_));
+}
+
+void RWMutex::unlock()
+{
+  EASY_CHECK(pthread_rwlock_unlock(&mutex_));
+}
+
+Spinlock::Spinlock()
+{
+  EASY_CHECK(pthread_spin_init(&m_mutex, 0));
+}
+
+Spinlock::~Spinlock()
+{
+  EASY_CHECK(pthread_spin_destroy(&m_mutex));
+}
+
+void Spinlock::lock()
+{
+  EASY_CHECK(pthread_spin_lock(&m_mutex));
+}
+
+void Spinlock::unlock()
+{
+  EASY_CHECK(pthread_spin_unlock(&m_mutex));
 }
 
 Semaphore::Semaphore(uint32_t count)

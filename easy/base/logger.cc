@@ -1,6 +1,7 @@
 #include "Logger.h"
 #include "LogAppender.h"
 #include "LogFormatter.h"
+#include "Mutex.h"
 
 #include <iostream>
 
@@ -15,11 +16,11 @@ Logger::Logger(const std::string &name) : name_(name), level_(LogLevel::trace)
 
 void Logger::setFormatter(LogFormatter::ptr val)
 {
-  // RWMutexType::WriteLock lock(m_mutex);
+  WriteLockGuard lock(mutex_);
   formatter_ = val;
   for (auto &i : appenders_)
   {
-    // LogAppender::MutexType::Lock ll(i->m_mutex);
+    SpinLockGuard ll(i->mutex_);
     if (!i->hasFormatter_)
     {
       i->formatter_ = formatter_;
@@ -36,15 +37,14 @@ void Logger::setFormatter(const std::string &val)
               << " invalid formatter" << std::endl;
     return;
   }
-  // formatter_ = new_val;
   setFormatter(new_val);
 }
 
 bool Logger::reopen()
 {
-  // RWMutexType::ReadLock lock(m_mutex);
+  ReadLockGuard lock(mutex_);
   auto appenders = appenders_;
-  // lock.unlock();
+  lock.unlock();
 
   for (auto &i : appenders)
   {
@@ -55,16 +55,16 @@ bool Logger::reopen()
 
 LogFormatter::ptr Logger::formatter()
 {
-  // RWMutexType::ReadLock lock(m_mutex);
+  ReadLockGuard lock(mutex_);
   return formatter_;
 }
 
 void Logger::addAppender(LogAppender::ptr appender)
 {
-  // RWMutexType::WriteLock lock(m_mutex);
+  WriteLockGuard lock(mutex_);
   if (!appender->getFormatter())
   {
-    // LogAppender::MutexType::Lock ll(appender->m_mutex);
+    SpinLockGuard ll(appender->mutex_);
     appender->formatter_ = formatter_;
   }
   appenders_.push_back(appender);
@@ -72,7 +72,7 @@ void Logger::addAppender(LogAppender::ptr appender)
 
 void Logger::deleteAppender(LogAppender::ptr appender)
 {
-  // RWMutexType::WriteLock lock(m_mutex);
+  WriteLockGuard lock(mutex_);
   for (auto it = appenders_.begin(); it != appenders_.end(); ++it)
   {
     if (*it == appender)
@@ -85,14 +85,14 @@ void Logger::deleteAppender(LogAppender::ptr appender)
 
 void Logger::clearAppender()
 {
-  // RWMutexType::WriteLock lock(m_mutex);
+  WriteLockGuard lock(mutex_);
   appenders_.clear();
 }
 
 void Logger::log(LogLevel::Level level, LogEvent::ptr event)
 {
   auto self = shared_from_this();
-  // RWMutexType::ReadLock lock(m_mutex);
+  ReadLockGuard lock(mutex_);
   if (!appenders_.empty())
   {
     for (auto &i : appenders_)
@@ -149,7 +149,7 @@ Logger::ptr LoggerManager::getLogger(const std::string &name)
 {
   do
   {
-    // RWMutexType::ReadLock lock(m_mutex);
+    ReadLockGuard lock(mutex_);
     auto it = loggers_.find(name);
     if (it != loggers_.end())
     {
@@ -157,7 +157,7 @@ Logger::ptr LoggerManager::getLogger(const std::string &name)
     }
   } while (0);
 
-  // RWMutexType::WriteLock lock(m_mutex);
+  WriteLockGuard lock(mutex_);
   auto it = loggers_.find(name);
   if (it != loggers_.end())
   {

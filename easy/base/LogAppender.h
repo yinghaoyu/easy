@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "LogLevel.h"
+#include "Mutex.h"
 
 namespace easy
 {
@@ -19,7 +20,6 @@ class LogAppender
 
  public:
   typedef std::shared_ptr<LogAppender> ptr;
-  // typedef Spinlock MutexType;
 
   LogAppender() = default;
   virtual ~LogAppender() = default;
@@ -43,7 +43,7 @@ class LogAppender
  protected:
   LogLevel::Level level_ = LogLevel::trace;
   bool hasFormatter_ = false;
-  // MutexType m_mutex;
+  Spinlock mutex_;
   std::shared_ptr<LogFormatter> formatter_;
 };
 

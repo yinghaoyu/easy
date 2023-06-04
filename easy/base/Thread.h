@@ -16,7 +16,7 @@ class Thread : noncopyable
  public:
   typedef std::shared_ptr<Thread> ptr;
 
-  Thread(std::function<void()> cb, const std::string &name);
+  Thread(std::function<void()> cb, const std::string &name = "");
 
   ~Thread();
 
@@ -32,6 +32,8 @@ class Thread : noncopyable
 
  private:
   static void *run(void *arg);
+
+  void setDefaultName();
 
  private:
   pid_t id_;  // from syscall

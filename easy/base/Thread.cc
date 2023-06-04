@@ -3,11 +3,14 @@
 
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <atomic>
 
 namespace easy
 {
-static thread_local Thread *t_thread = nullptr;
 
+static std::atomic<uint64_t> s_num_created{0};
+
+static thread_local Thread *t_thread = nullptr;
 static thread_local std::string t_thread_name = "unknow";
 
 pid_t gettid()
@@ -25,10 +28,7 @@ Thread *Thread::GetCurrentThread()
 Thread::Thread(std::function<void()> cb, const std::string &name)
     : cb_(cb), name_(name)
 {
-  if (name.empty())
-  {
-    name_ = "unknow";
-  }
+  setDefaultName();
   EASY_CHECK(pthread_create(&pthreadId_, nullptr, &Thread::run, this));
   semaphore_.wait();
 }
@@ -38,6 +38,17 @@ Thread::~Thread()
   if (pthreadId_)
   {
     pthread_detach(pthreadId_);
+  }
+}
+
+void Thread::setDefaultName()
+{
+  int num = static_cast<int>(++s_num_created);
+  if (name_.empty())
+  {
+    char buf[32];
+    snprintf(buf, sizeof buf, "Thread%d", num);
+    name_ = buf;
   }
 }
 
@@ -65,7 +76,23 @@ void *Thread::run(void *arg)
 
   thread->semaphore_.notify();  // everything is ok
 
-  cb();
+  try
+  {
+    cb();
+    thread->name_ = "finished";
+  }
+  catch (std::exception &ex)
+  {
+    thread->name_ = "crashed";
+    EASY_LOG_ERROR(logger) << "thread crashed id=" << thread->id_;
+    abort();
+  }
+  catch (...)
+  {
+    thread->name_ = "crashed";
+    EASY_LOG_ERROR(logger) << "thread crashed id=" << thread->id_;
+    throw;  // rethrow
+  }
   return 0;
 }
 

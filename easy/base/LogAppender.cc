@@ -8,7 +8,7 @@ namespace easy
 {
 void LogAppender::setFormatter(std::shared_ptr<LogFormatter> val)
 {
-  // MutexType::Lock lock(m_mutex);
+  SpinLockGuard lock(mutex_);
   formatter_ = val;
   if (formatter_)
   {
@@ -22,7 +22,7 @@ void LogAppender::setFormatter(std::shared_ptr<LogFormatter> val)
 
 std::shared_ptr<LogFormatter> LogAppender::getFormatter()
 {
-  // MutexType::Lock lock(m_mutex);
+  SpinLockGuard lock(mutex_);
   return formatter_;
 }
 
@@ -37,7 +37,7 @@ void ConsoleLogAppender::log(std::shared_ptr<Logger> logger,
 {
   if (shouldLog(level))
   {
-    // MutexType::Lock lock(m_mutex);
+    SpinLockGuard lock(mutex_);
     formatter_->format(std::cout, logger, level, event);
   }
 }
@@ -62,8 +62,7 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
       reopen();
       last_time_ = now;
     }
-    // MutexType::Lock lock(m_mutex);
-    //  if(!(m_filestream << formatter_->format(logger, level, event))) {
+    SpinLockGuard lock(mutex_);
     if (!formatter_->format(filestream_, logger, level, event))
     {
       std::cout << "error" << std::endl;
@@ -73,7 +72,7 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
 
 bool FileLogAppender::reopen()
 {
-  // MutexType::Lock lock(m_mutex);
+  SpinLockGuard lock(mutex_);
   if (filestream_)
   {
     filestream_.close();
