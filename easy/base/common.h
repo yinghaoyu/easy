@@ -57,7 +57,6 @@ void backtrace(std::vector<std::string> &bt, size_t size = 64, int skip = 1);
 std::string backtrace_to_string(int size = 64,
                                 int skip = 2,
                                 const std::string &prefix = "");
-
 }  // namespace util
 
 }  // namespace easy

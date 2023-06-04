@@ -20,7 +20,7 @@ Coroutine *NewCoroutine(std::function<void()> cb,
 
 void FreeCoroutine(Coroutine *ptr);
 
-class Coroutine : public std::enable_shared_from_this<Coroutine>
+class Coroutine : noncopyable, public std::enable_shared_from_this<Coroutine>
 {
   friend Coroutine *NewCoroutine();
   friend Coroutine *NewCoroutine(std::function<void()> cb,

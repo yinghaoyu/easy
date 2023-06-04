@@ -1,4 +1,5 @@
-#include "easy/base/easy_define.h"
+#include "easy/base/LogAppender.h"
+#include "easy/base/Logger.h"
 
 #include <unistd.h>
 #include <iostream>

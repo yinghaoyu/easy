@@ -1,4 +1,5 @@
 #include "Coroutine.h"
+#include "Logger.h"
 #include "easy_define.h"
 
 #include <sys/mman.h>

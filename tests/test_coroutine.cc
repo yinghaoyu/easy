@@ -1,5 +1,5 @@
 #include "easy/base/Coroutine.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/logger.h"
 
 static easy::Logger::ptr logger = EASY_LOG_ROOT();
 
