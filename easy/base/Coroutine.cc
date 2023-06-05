@@ -1,9 +1,9 @@
 #include "Coroutine.h"
+#include "Atomic.h"
 #include "Logger.h"
 #include "easy_define.h"
 
 #include <sys/mman.h>
-#include <atomic>
 #include <memory>
 
 namespace easy
@@ -11,8 +11,8 @@ namespace easy
 
 static Logger::ptr logger = EASY_LOG_NAME("system");
 
-static std::atomic<uint64_t> s_fiber_id{0};
-static std::atomic<uint64_t> s_fiber_count{0};
+static AtomicInt<uint64_t> s_fiber_id{0};
+static AtomicInt<uint64_t> s_fiber_count{0};
 
 static thread_local Coroutine *t_running_co = nullptr;
 static thread_local Coroutine::ptr t_main_co = nullptr;
@@ -65,16 +65,16 @@ Coroutine::Coroutine()
 {
   SetRunning(this);
   EASY_CHECK(getcontext(&ctx_));
-  ++s_fiber_count;
+  s_fiber_count.increment();
   EASY_LOG_DEBUG(logger) << "Coroutine ctor~ main id=" << id_;
 }
 
 Coroutine::Coroutine(std::function<void()> cb,
                      size_t stacksize,
                      bool use_caller_thread)
-    : id_(++s_fiber_id), cb_(cb)
+    : id_(s_fiber_id.incrementAndFetch()), cb_(cb)
 {
-  ++s_fiber_count;
+  s_fiber_count.increment();
   stacksize_ = stacksize;
 
   stack_ = StackAllocator::Alloc(stacksize_);
@@ -90,7 +90,7 @@ Coroutine::Coroutine(std::function<void()> cb,
 
 Coroutine::~Coroutine()
 {
-  --s_fiber_count;
+  s_fiber_count.decrement();
   if (stack_)
   {
     StackAllocator::Dealloc(stack_, stacksize_);
@@ -106,7 +106,7 @@ Coroutine::~Coroutine()
     }
   }
   EASY_LOG_DEBUG(logger) << "Coroutine dtor~ id=" << id_
-                         << " total=" << s_fiber_count;
+                         << " total=" << s_fiber_count.get();
 }
 
 void Coroutine::resume()

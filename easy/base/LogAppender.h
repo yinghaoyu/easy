@@ -43,7 +43,7 @@ class LogAppender
  protected:
   LogLevel::Level level_ = LogLevel::trace;
   bool hasFormatter_ = false;
-  Spinlock mutex_;
+  SpinLock mutex_;
   std::shared_ptr<LogFormatter> formatter_;
 };
 

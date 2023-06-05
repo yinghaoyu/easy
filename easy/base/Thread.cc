@@ -1,16 +1,16 @@
 #include "Thread.h"
 #include "easy_define.h"
+#include "Atomic.h"
 
 #include <sys/syscall.h>
 #include <sys/types.h>
-#include <atomic>
 
 namespace easy
 {
 
 static_assert(std::is_same<int, pid_t>::value, "pid_t should be int");
 
-static std::atomic<uint64_t> s_num_created{0};
+static AtomicInt<uint64_t> s_num_created{0};
 
 static thread_local const char *t_thread_name = "main";
 static thread_local int t_thread_id = 0;
@@ -54,7 +54,7 @@ Thread::~Thread()
 
 void Thread::setDefaultName()
 {
-  int num = static_cast<int>(++s_num_created);
+  int num = static_cast<int>(s_num_created.incrementAndFetch());
   if (name_.empty())
   {
     char buf[32];

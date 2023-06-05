@@ -97,7 +97,7 @@ class Logger : public std::enable_shared_from_this<Logger>
  private:
   std::string name_;       // 日志名称
   LogLevel::Level level_;  // 日志级别
-  RWMutex mutex_;
+  RWLock mutex_;
   std::list<std::shared_ptr<LogAppender>> appenders_;  // appenders 集合
   std::shared_ptr<LogFormatter> formatter_;            // 默认的 formatter
   Logger::ptr root_;                                   // 根日志器
@@ -112,7 +112,7 @@ class LoggerManager : noncopyable
   bool reopen();
 
  private:
-  RWMutex mutex_;
+  RWLock mutex_;
   std::map<std::string, Logger::ptr> loggers_;
   Logger::ptr root_;  // 根日志器
 };

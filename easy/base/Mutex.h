@@ -2,6 +2,7 @@
 #define __EASY_MUTEX_H__
 
 #include "noncopyable.h"
+#include "Atomic.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -9,11 +10,11 @@
 
 namespace easy
 {
-class Mutex : noncopyable
+class MutexLock : noncopyable
 {
  public:
-  Mutex();
-  ~Mutex();
+  MutexLock();
+  ~MutexLock();
 
   void lock();
 
@@ -26,19 +27,19 @@ class Mutex : noncopyable
 class MutexLockGuard : noncopyable
 {
  public:
-  MutexLockGuard(Mutex &mutex) : mutex_(mutex) { mutex_.lock(); }
+  MutexLockGuard(MutexLock &mutex) : mutex_(mutex) { mutex_.lock(); }
 
   ~MutexLockGuard() { mutex_.unlock(); }
 
  private:
-  Mutex &mutex_;
+  MutexLock &mutex_;
 };
 
-class RWMutex : noncopyable
+class RWLock : noncopyable
 {
  public:
-  RWMutex();
-  ~RWMutex();
+  RWLock();
+  ~RWLock();
 
   void rdlock();
   void wrlock();
@@ -51,7 +52,7 @@ class RWMutex : noncopyable
 class ReadLockGuard : noncopyable
 {
  public:
-  ReadLockGuard(RWMutex &mutex) : mutex_(mutex) { mutex_.rdlock(); }
+  ReadLockGuard(RWLock &mutex) : mutex_(mutex) { mutex_.rdlock(); }
 
   ~ReadLockGuard() { mutex_.unlock(); }
 
@@ -60,13 +61,13 @@ class ReadLockGuard : noncopyable
   void unlock() { mutex_.unlock(); }
 
  private:
-  RWMutex &mutex_;
+  RWLock &mutex_;
 };
 
 class WriteLockGuard : noncopyable
 {
  public:
-  WriteLockGuard(RWMutex &mutex) : mutex_(mutex) { mutex_.wrlock(); }
+  WriteLockGuard(RWLock &mutex) : mutex_(mutex) { mutex_.wrlock(); }
 
   ~WriteLockGuard() { mutex_.unlock(); }
 
@@ -75,33 +76,33 @@ class WriteLockGuard : noncopyable
   void unlock() { mutex_.unlock(); }
 
  private:
-  RWMutex &mutex_;
+  RWLock &mutex_;
 };
 
-class Spinlock : noncopyable
+class SpinLock : noncopyable
 {
  public:
-  Spinlock();
+  SpinLock();
 
-  ~Spinlock();
+  ~SpinLock();
 
   void lock();
 
   void unlock();
 
  private:
-  pthread_spinlock_t m_mutex;
+  pthread_spinlock_t mutex_;
 };
 
 class SpinLockGuard : noncopyable
 {
  public:
-  SpinLockGuard(Spinlock &mutex) : mutex_(mutex) { mutex_.lock(); }
+  SpinLockGuard(SpinLock &mutex) : mutex_(mutex) { mutex_.lock(); }
 
   ~SpinLockGuard() { mutex_.unlock(); }
 
  private:
-  Spinlock &mutex_;
+  SpinLock &mutex_;
 };
 
 class Semaphore : noncopyable
