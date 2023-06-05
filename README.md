@@ -1,6 +1,7 @@
 # easy
 
-## 日志实现
+## 日志
+
 - [x] 支持不同种类的输出目标，比如标准输出、文件。
 - [x] 支持类似 `log4j` 的输出格式配置。
   - [x] `%p`：输出日志级别。
@@ -13,13 +14,18 @@
   - [ ] `%x`：输出和当前线程关联的 NDC（嵌套诊断上下文）。
   - [x] `%L`：输出代码中的行号。
 
-## 协程及调度器实现
+## 协程及调度器
 
 - [x] 协程基于 `ucontext_t cluster`。
 - [x] 每个协程都使用独立的栈。
+- [x] 线程的 `root` 协程可以不要栈空间，只负责调度，当然调度协程不一定得是 `root` 协程。
 - [x] 调度器支持协程调度到其他线程。
+- [x] 调度器采用简单的 `Round-robin` 策略。
+- [x] 一个 `N * M` 的调度器，`n` 个线程，`m`个协程，协程可以切换到任意线程上。
 
 ## 参考链接
+
 1. https://github.com/chenshuo/muduo
 2. https://github.com/sylar-yin/sylar
 3. https://github.com/gabime/spdlog
+3. https://github.com/oceanbase/oceanbase

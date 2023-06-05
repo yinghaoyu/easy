@@ -1,5 +1,5 @@
-#include <vector>
 #include <thread>
+#include <vector>
 
 #include "easy/base/Logger.h"
 #include "easy/base/Mutex.h"
@@ -47,7 +47,7 @@ void test_wrlock()
     t->join();
   }
   EASY_ASSERT(shared_data == times * numThread);
-  EASY_LOG_DEBUG(logger) << "WRLock success" ;
+  EASY_LOG_DEBUG(logger) << "WRLock success";
 }
 
 static int count = 0;
@@ -66,7 +66,7 @@ void test_mutex()
   std::vector<easy::Thread::ptr> thrs;
   for (int i = 0; i < numThread; ++i)
   {
-     easy::Thread::ptr thr = std::make_shared<easy::Thread>(thread_cb);
+    easy::Thread::ptr thr = std::make_shared<easy::Thread>(thread_cb);
     thrs.push_back(thr);
   }
   for (size_t i = 0; i < thrs.size(); ++i)
@@ -74,7 +74,7 @@ void test_mutex()
     thrs[i]->join();
   }
   EASY_ASSERT(count == times * numThread);
-  EASY_LOG_DEBUG(logger) << "MutexLock success" ;
+  EASY_LOG_DEBUG(logger) << "MutexLock success";
 }
 
 int main()

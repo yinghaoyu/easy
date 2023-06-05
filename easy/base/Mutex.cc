@@ -1,4 +1,4 @@
-#include "Mutex.h"
+#include "easy/base/Mutex.h"
 #include "easy/base/Atomic.h"
 #include "easy_define.h"
 
@@ -23,83 +23,29 @@ void MutexLock::unlock()
   EASY_CHECK(pthread_mutex_unlock(&mutex_));
 }
 
-RWLock::RWLock() //: ref_cnt_(0), wait_write_(0)
+RWLock::RWLock()
 {
-   EASY_CHECK(pthread_rwlock_init(&mutex_, NULL));
+  EASY_CHECK(pthread_rwlock_init(&mutex_, NULL));
 }
 
 RWLock::~RWLock()
 {
-   EASY_CHECK(pthread_rwlock_destroy(&mutex_));
+  EASY_CHECK(pthread_rwlock_destroy(&mutex_));
 }
 
 void RWLock::rdlock()
 {
- EASY_CHECK(pthread_rwlock_rdlock(&mutex_));
-//  int cond = 1;
-//  while (cond)
-//  {
-//    int loop = 1;
-//    do
-//    {
-//      int oldv = ref_cnt_.value_;  // uncessary use ref_cnt_.get()
-//
-//      if (0 <= oldv && 0 == wait_write_.value_)
-//      {
-//        int newv = oldv + 1;
-//
-//        if (ref_cnt_.compareAndSet(oldv, newv))
-//        {
-//          cond = 0;
-//          break;
-//        }
-//      }
-//
-//      asm("pause");
-//      loop <<= 1;
-//    } while (loop < 1024);
-//
-//    EASY_CHECK(sched_yield());
-//  }
+  EASY_CHECK(pthread_rwlock_rdlock(&mutex_));
 }
 
 void RWLock::wrlock()
 {
- EASY_CHECK(pthread_rwlock_wrlock(&mutex_));
-//  int cond = 1;
-//
-//  wait_write_.increment();
-//
-//  while (cond)
-//  {
-//    int loop = 1;
-//    do
-//    {
-//      int oldv = ref_cnt_.value_;
-//      if (0 == oldv)
-//      {
-//        int newv = -1;
-//        if (ref_cnt_.compareAndSet(oldv, newv))
-//        {
-//          cond = 0;
-//          break;
-//        }
-//      }
-//
-//      asm("pause");
-//
-//      loop <<= 1;
-//    } while (loop < 1024);
-//
-//    EASY_CHECK(sched_yield());
-//  }
-//
-//  wait_write_.decrement();
+  EASY_CHECK(pthread_rwlock_wrlock(&mutex_));
 }
 
 void RWLock::unlock()
 {
- EASY_CHECK(pthread_rwlock_unlock(&mutex_));
+  EASY_CHECK(pthread_rwlock_unlock(&mutex_));
 }
 
 SpinLock::SpinLock()
@@ -119,7 +65,7 @@ void SpinLock::lock()
 
 void SpinLock::unlock()
 {
-   EASY_CHECK(pthread_spin_unlock(&mutex_));
+  EASY_CHECK(pthread_spin_unlock(&mutex_));
 }
 
 Semaphore::Semaphore(uint32_t count)

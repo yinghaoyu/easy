@@ -1,7 +1,7 @@
 #ifndef __EASY_LOG_EVENT_H__
 #define __EASY_LOG_EVENT_H__
 
-#include "LogLevel.h"
+#include "easy/base/LogLevel.h"
 
 #include <memory>
 #include <sstream>

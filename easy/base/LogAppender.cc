@@ -1,6 +1,6 @@
-#include "LogAppender.h"
-#include "LogFormatter.h"
-#include "Logger.h"
+#include "easy/base/LogAppender.h"
+#include "easy/base/LogFormatter.h"
+#include "easy/base/Logger.h"
 
 #include <iostream>
 
@@ -8,7 +8,7 @@ namespace easy
 {
 void LogAppender::setFormatter(std::shared_ptr<LogFormatter> val)
 {
-  SpinLockGuard lock(mutex_);
+  SpinLockGuard lock(lock_);
   formatter_ = val;
   if (formatter_)
   {
@@ -22,7 +22,7 @@ void LogAppender::setFormatter(std::shared_ptr<LogFormatter> val)
 
 std::shared_ptr<LogFormatter> LogAppender::getFormatter()
 {
-  SpinLockGuard lock(mutex_);
+  SpinLockGuard lock(lock_);
   return formatter_;
 }
 
@@ -37,7 +37,7 @@ void ConsoleLogAppender::log(std::shared_ptr<Logger> logger,
 {
   if (shouldLog(level))
   {
-    SpinLockGuard lock(mutex_);
+    SpinLockGuard lock(lock_);
     formatter_->format(std::cout, logger, level, event);
   }
 }
@@ -62,7 +62,7 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
       reopen();
       last_time_ = now;
     }
-    SpinLockGuard lock(mutex_);
+    SpinLockGuard lock(lock_);
     if (!formatter_->format(filestream_, logger, level, event))
     {
       std::cout << "error" << std::endl;
@@ -72,7 +72,7 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
 
 bool FileLogAppender::reopen()
 {
-  SpinLockGuard lock(mutex_);
+  SpinLockGuard lock(lock_);
   if (filestream_)
   {
     filestream_.close();

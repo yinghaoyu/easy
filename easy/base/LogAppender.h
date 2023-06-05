@@ -4,8 +4,8 @@
 #include <fstream>
 #include <memory>
 
-#include "LogLevel.h"
-#include "Mutex.h"
+#include "easy/base/LogLevel.h"
+#include "easy/base/Mutex.h"
 
 namespace easy
 {
@@ -43,7 +43,7 @@ class LogAppender
  protected:
   LogLevel::Level level_ = LogLevel::trace;
   bool hasFormatter_ = false;
-  SpinLock mutex_;
+  SpinLock lock_;
   std::shared_ptr<LogFormatter> formatter_;
 };
 

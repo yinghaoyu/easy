@@ -1,8 +1,8 @@
 #ifndef __EASY_THREAD_H__
 #define __EASY_THREAD_H__
 
-#include "Mutex.h"
-#include "noncopyable.h"
+#include "easy/base/Mutex.h"
+#include "easy/base/noncopyable.h"
 
 #include <pthread.h>
 #include <functional>
@@ -26,11 +26,11 @@ class Thread : noncopyable
 
   const std::string &name() const { return name_; }
 
-  void setName(const std::string &name) { name_ = name; }
-
   static int GetCurrentThreadId();
 
-  static const char* GetCurrentThreadName();
+  static const char *GetCurrentThreadName();
+
+  static void SetCurrentThreadName(const std::string &name);
 
  private:
   static void *run(void *arg);

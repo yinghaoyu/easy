@@ -1,4 +1,4 @@
-#include "LogLevel.h"
+#include "easy/base/LogLevel.h"
 
 namespace easy
 {

@@ -1,7 +1,7 @@
 #ifndef __EASY_COROUTINE_H__
 #define __EASY_COROUTINE_H__
 
-#include "noncopyable.h"
+#include "easy/base/noncopyable.h"
 
 #include <ucontext.h>
 #include <cstdint>
@@ -16,7 +16,7 @@ Coroutine *NewCoroutine();
 
 Coroutine *NewCoroutine(std::function<void()> cb,
                         size_t stacksize = 128 * 1024,
-                        bool use_caller_thread = false);
+                        bool use_caller = false);
 
 void FreeCoroutine(Coroutine *ptr);
 
@@ -25,17 +25,33 @@ class Coroutine : noncopyable, public std::enable_shared_from_this<Coroutine>
   friend Coroutine *NewCoroutine();
   friend Coroutine *NewCoroutine(std::function<void()> cb,
                                  size_t stacksize,
-                                 bool use_caller_thread);
+                                 bool use_caller);
   friend void FreeCoroutine(Coroutine *ptr);
+
+  friend class Scheduler;
 
  public:
   typedef std::shared_ptr<Coroutine> ptr;
 
+  enum State
+  {
+    INIT,
+    READY,
+    HOLD,
+    EXEC,
+    TERM,
+    EXCEPT
+  };
+
   Coroutine(std::function<void()> cb,
             size_t stacksize = 0,
-            bool use_caller_thread = false);
+            bool use_caller = false);
 
   ~Coroutine();
+
+  void sched_resume();
+
+  void sched_yield();
 
   void resume();
 
@@ -45,18 +61,24 @@ class Coroutine : noncopyable, public std::enable_shared_from_this<Coroutine>
 
   uint64_t id() const { return id_; }
 
-  static void SetRunning(Coroutine *co);
-  static Coroutine::ptr GetRunning();
+  State state() const { return state_; }
+
+  bool finish() const { return (state_ == TERM || state_ == EXCEPT); }
+
+  static void SetThis(Coroutine *co);
+  static Coroutine::ptr GetThis();
+  static void YieldToHold();
   static uint64_t CurrentCoroutineId();
 
  private:
-  Coroutine();
+  Coroutine();  // root coroutine only
 
   static void MainFunc();
 
  private:
   uint64_t id_ = 0;
   size_t stacksize_ = 0;
+  State state_ = State::INIT;
   ucontext_t ctx_;
   void *stack_ = nullptr;
   std::function<void()> cb_;

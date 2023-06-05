@@ -35,7 +35,7 @@ class AtomicInt : noncopyable
   void set(T x) { __atomic_store_n(&value_, x, __ATOMIC_SEQ_CST); }
 
   // gcc >= 4.7
-  T get() { return __atomic_load_n(&value_, __ATOMIC_SEQ_CST); }
+  T get() const { return __atomic_load_n(&value_, __ATOMIC_SEQ_CST); }
 
   void add(T x) { addAndFetch(x); }
 

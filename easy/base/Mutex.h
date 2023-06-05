@@ -1,8 +1,8 @@
 #ifndef __EASY_MUTEX_H__
 #define __EASY_MUTEX_H__
 
-#include "noncopyable.h"
-#include "Atomic.h"
+#include "easy/base/Atomic.h"
+#include "easy/base/noncopyable.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -19,6 +19,8 @@ class MutexLock : noncopyable
   void lock();
 
   void unlock();
+
+  pthread_mutex_t *mutexPtr() { return &mutex_; }
 
  private:
   pthread_mutex_t mutex_;

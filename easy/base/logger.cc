@@ -1,7 +1,7 @@
-#include "Logger.h"
-#include "LogAppender.h"
-#include "LogFormatter.h"
-#include "Mutex.h"
+#include "easy/base/Logger.h"
+#include "easy/base/LogAppender.h"
+#include "easy/base/LogFormatter.h"
+#include "easy/base/Mutex.h"
 
 #include <iostream>
 
@@ -16,11 +16,11 @@ Logger::Logger(const std::string &name) : name_(name), level_(LogLevel::trace)
 
 void Logger::setFormatter(LogFormatter::ptr val)
 {
-  WriteLockGuard lock(mutex_);
+  WriteLockGuard lock(lock_);
   formatter_ = val;
   for (auto &i : appenders_)
   {
-    SpinLockGuard ll(i->mutex_);
+    SpinLockGuard ll(i->lock_);
     if (!i->hasFormatter_)
     {
       i->formatter_ = formatter_;
@@ -42,7 +42,7 @@ void Logger::setFormatter(const std::string &val)
 
 bool Logger::reopen()
 {
-  ReadLockGuard lock(mutex_);
+  ReadLockGuard lock(lock_);
   auto appenders = appenders_;
   lock.unlock();
 
@@ -55,16 +55,16 @@ bool Logger::reopen()
 
 LogFormatter::ptr Logger::formatter()
 {
-  ReadLockGuard lock(mutex_);
+  ReadLockGuard lock(lock_);
   return formatter_;
 }
 
 void Logger::addAppender(LogAppender::ptr appender)
 {
-  WriteLockGuard lock(mutex_);
+  WriteLockGuard lock(lock_);
   if (!appender->getFormatter())
   {
-    SpinLockGuard ll(appender->mutex_);
+    SpinLockGuard ll(appender->lock_);
     appender->formatter_ = formatter_;
   }
   appenders_.push_back(appender);
@@ -72,7 +72,7 @@ void Logger::addAppender(LogAppender::ptr appender)
 
 void Logger::deleteAppender(LogAppender::ptr appender)
 {
-  WriteLockGuard lock(mutex_);
+  WriteLockGuard lock(lock_);
   for (auto it = appenders_.begin(); it != appenders_.end(); ++it)
   {
     if (*it == appender)
@@ -85,14 +85,14 @@ void Logger::deleteAppender(LogAppender::ptr appender)
 
 void Logger::clearAppender()
 {
-  WriteLockGuard lock(mutex_);
+  WriteLockGuard lock(lock_);
   appenders_.clear();
 }
 
 void Logger::log(LogLevel::Level level, LogEvent::ptr event)
 {
   auto self = shared_from_this();
-  ReadLockGuard lock(mutex_);
+  ReadLockGuard lock(lock_);
   if (!appenders_.empty())
   {
     for (auto &i : appenders_)
@@ -149,7 +149,7 @@ Logger::ptr LoggerManager::getLogger(const std::string &name)
 {
   do
   {
-    ReadLockGuard lock(mutex_);
+    ReadLockGuard lock(lock_);
     auto it = loggers_.find(name);
     if (it != loggers_.end())
     {
@@ -157,7 +157,7 @@ Logger::ptr LoggerManager::getLogger(const std::string &name)
     }
   } while (0);
 
-  WriteLockGuard lock(mutex_);
+  WriteLockGuard lock(lock_);
   auto it = loggers_.find(name);
   if (it != loggers_.end())
   {

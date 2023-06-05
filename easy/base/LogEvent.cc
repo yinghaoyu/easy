@@ -1,5 +1,5 @@
-#include "LogEvent.h"
-#include "Logger.h"
+#include "easy/base/LogEvent.h"
+#include "easy/base/Logger.h"
 
 #include <stdarg.h>
 

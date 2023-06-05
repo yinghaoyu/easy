@@ -5,17 +5,16 @@ static easy::Logger::ptr logger = EASY_LOG_ROOT();
 
 void run_in_coroutine()
 {
-  easy::Coroutine::ptr self = easy::Coroutine::GetRunning();
   EASY_LOG_INFO(logger) << "run_in_fiber begin";
-  self->yield();
+  easy::Coroutine::YieldToHold();
   EASY_LOG_INFO(logger) << "run_in_fiber resume";
-  self->yield();
+  easy::Coroutine::YieldToHold();
   EASY_LOG_INFO(logger) << "run_in_fiber end";
 }
 
 void test_coroutine()
 {
-  easy::Coroutine::GetRunning();
+  easy::Coroutine::GetThis();
   EASY_LOG_INFO(logger) << "main begin";
   easy::Coroutine::ptr coroutine(easy::NewCoroutine(run_in_coroutine),
                                  easy::FreeCoroutine);

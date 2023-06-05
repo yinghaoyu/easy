@@ -1,14 +1,14 @@
 #ifndef __EASY_LOG_FORMATTER_H__
 #define __EASY_LOG_FORMATTER_H__
 
+#include "easy/base/LogEvent.h"
+#include "easy/base/Logger.h"
+
 #include <inttypes.h>
 #include <memory.h>
 #include <ctime>
 #include <memory>
 #include <vector>
-
-#include "LogEvent.h"
-#include "Logger.h"
 
 namespace easy
 {

@@ -1,5 +1,5 @@
-#include "LogFormatter.h"
-#include "Logger.h"
+#include "easy/base/LogFormatter.h"
+#include "easy/base/Logger.h"
 
 #include <functional>
 #include <map>

@@ -1,6 +1,6 @@
-#include "Thread.h"
-#include "easy_define.h"
-#include "Atomic.h"
+#include "easy/base/Thread.h"
+#include "easy/base/Atomic.h"
+#include "easy/base/easy_define.h"
 
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -26,6 +26,7 @@ int Thread::GetCurrentThreadId()
 {
   if (EASY_UNLIKELY(!t_thread_id))
   {
+    // slow path
     t_thread_id = gettid();
   }
   return t_thread_id;

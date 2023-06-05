@@ -5,22 +5,21 @@
 #include <map>
 #include <memory>
 
-#include "Coroutine.h"
-#include "LogEvent.h"
-#include "LogLevel.h"
-#include "Singleton.h"
-#include "Thread.h"
-#include "common.h"
-#include "noncopyable.h"
+#include "easy/base/Coroutine.h"
+#include "easy/base/LogEvent.h"
+#include "easy/base/LogLevel.h"
+#include "easy/base/Singleton.h"
+#include "easy/base/Thread.h"
+#include "easy/base/common.h"
+#include "easy/base/noncopyable.h"
 
-#define EASY_LOG_LEVEL(obj, lvl)                                    \
-  if (obj->level() <= lvl)                                          \
-  easy::LogEventRAII(std::make_shared<easy::LogEvent>(              \
-                         obj, lvl, __FILE__, __LINE__, 0,           \
-                         easy::Thread::GetCurrentThreadId(),    \
-                         easy::Coroutine::CurrentCoroutineId(),     \
-                         easy::util::timestamp(),                   \
-                         easy::Thread::GetCurrentThreadName())) \
+#define EASY_LOG_LEVEL(obj, lvl)                                               \
+  if (obj->level() <= lvl)                                                     \
+  easy::LogEventRAII(                                                          \
+      std::make_shared<easy::LogEvent>(                                        \
+          obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
+          easy::Coroutine::CurrentCoroutineId(), easy::util::timestamp(),      \
+          easy::Thread::GetCurrentThreadName()))                               \
       .getSS()
 
 #define EASY_LOG_TRACE(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::trace)
@@ -30,15 +29,14 @@
 #define EASY_LOG_ERROR(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::error)
 #define EASY_LOG_FATAL(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::fatal)
 
-#define EASY_LOG_FMT_LEVEL(obj, lvl, fmt, ...)                      \
-  if (obj->level() <= lvl)                                          \
-  easy::LogEventRAII(std::make_shared<easy::LogEvent>(              \
-                         obj, lvl, __FILE__, __LINE__, 0,           \
-                         easy::Thread::GetCurrentThreadId(),    \
-                         easy::Coroutine::CurrentCoroutineId(),     \
-                         easy::util::timestamp(),                   \
-                         easy::Thread::GetCurrentThreadName())) \
-      .event()                                                      \
+#define EASY_LOG_FMT_LEVEL(obj, lvl, fmt, ...)                                 \
+  if (obj->level() <= lvl)                                                     \
+  easy::LogEventRAII(                                                          \
+      std::make_shared<easy::LogEvent>(                                        \
+          obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
+          easy::Coroutine::CurrentCoroutineId(), easy::util::timestamp(),      \
+          easy::Thread::GetCurrentThreadName()))                               \
+      .event()                                                                 \
       ->format(fmt, __VA_ARGS__)
 
 #define EASY_LOG_FMT_TRACE(obj, fmt, ...) \
@@ -97,7 +95,7 @@ class Logger : public std::enable_shared_from_this<Logger>
  private:
   std::string name_;       // 日志名称
   LogLevel::Level level_;  // 日志级别
-  RWLock mutex_;
+  RWLock lock_;
   std::list<std::shared_ptr<LogAppender>> appenders_;  // appenders 集合
   std::shared_ptr<LogFormatter> formatter_;            // 默认的 formatter
   Logger::ptr root_;                                   // 根日志器
@@ -112,7 +110,7 @@ class LoggerManager : noncopyable
   bool reopen();
 
  private:
-  RWLock mutex_;
+  RWLock lock_;
   std::map<std::string, Logger::ptr> loggers_;
   Logger::ptr root_;  // 根日志器
 };

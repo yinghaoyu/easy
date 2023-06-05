@@ -1,4 +1,4 @@
-#include "common.h"
+#include "easy/base/common.h"
 
 #include <cxxabi.h>
 #include <execinfo.h>
@@ -127,7 +127,7 @@ void backtrace(std::vector<std::string> &bt, size_t size, int skip)
 std::string backtrace_to_string(int size, int skip, const std::string &prefix)
 {
   std::vector<std::string> bt;
-  backtrace(bt, size, skip);
+  backtrace(bt, static_cast<size_t>(size), skip);
   std::stringstream ss;
   for (size_t i = 0; i < bt.size(); ++i)
   {

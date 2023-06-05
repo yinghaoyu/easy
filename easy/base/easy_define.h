@@ -3,8 +3,8 @@
 
 #include <assert.h>
 
-#include "Logger.h"
-#include "common.h"
+#include "easy/base/Logger.h"
+#include "easy/base/common.h"
 
 #if defined __GNUC__ || defined __llvm__
 #define EASY_LIKELY(x) __builtin_expect(!!(x), 1)
@@ -20,7 +20,7 @@
     EASY_LOG_ERROR(EASY_LOG_ROOT())                         \
         << "assertion: " #x << "\nbacktrace:\n"             \
         << easy::util::backtrace_to_string(100, 2, "    "); \
-    assert(x);                                              \
+    abort();                                                \
   }
 
 #define EASY_ASSERT_MESSAGE(x, w)                           \
@@ -30,7 +30,7 @@
         << "assertion: " #x << "\n"                         \
         << w << "\nbacktrace:\n"                            \
         << easy::util::backtrace_to_string(100, 2, "    "); \
-    assert(x);                                              \
+    abort();                                                \
   }
 
 #define EASY_CHECK(x)   \

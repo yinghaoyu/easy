@@ -7,6 +7,7 @@ set(base_SRCS
   Coroutine.cc
   Thread.cc
   Mutex.cc
+  Scheduler.cc
   common.cc
   )
 
