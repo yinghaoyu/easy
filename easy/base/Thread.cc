@@ -8,10 +8,12 @@
 namespace easy
 {
 
+static_assert(std::is_same<int, pid_t>::value, "pid_t should be int");
+
 static std::atomic<uint64_t> s_num_created{0};
 
-static thread_local Thread *t_thread = nullptr;
-static thread_local std::string t_thread_name = "unknow";
+static thread_local const char *t_thread_name = "main";
+static thread_local int t_thread_id = 0;
 
 pid_t gettid()
 {
@@ -20,9 +22,18 @@ pid_t gettid()
 
 static easy::Logger::ptr logger = EASY_LOG_NAME("system");
 
-Thread *Thread::GetCurrentThread()
+int Thread::GetCurrentThreadId()
 {
-  return t_thread;
+  if (EASY_UNLIKELY(!t_thread_id))
+  {
+    t_thread_id = gettid();
+  }
+  return t_thread_id;
+}
+
+const char *Thread::GetCurrentThreadName()
+{
+  return t_thread_name;
 }
 
 Thread::Thread(std::function<void()> cb, const std::string &name)
@@ -65,14 +76,15 @@ void *Thread::run(void *arg)
 {
   Thread *thread = static_cast<Thread *>(arg);
 
-  t_thread = thread;
+  thread->id_ = GetCurrentThreadId();
 
-  thread->id_ = gettid();
+  t_thread_name = thread->name_.c_str();
 
   pthread_setname_np(pthread_self(), thread->name_.substr(0, 15).c_str());
 
   std::function<void()> cb;
-  cb.swap(thread->cb_);
+
+  cb = std::move(thread->cb_);
 
   thread->semaphore_.notify();  // everything is ok
 

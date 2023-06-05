@@ -28,7 +28,9 @@ class Thread : noncopyable
 
   void setName(const std::string &name) { name_ = name; }
 
-  static Thread *GetCurrentThread();
+  static int GetCurrentThreadId();
+
+  static const char* GetCurrentThreadName();
 
  private:
   static void *run(void *arg);

@@ -17,10 +17,10 @@
   if (obj->level() <= lvl)                                          \
   easy::LogEventRAII(std::make_shared<easy::LogEvent>(              \
                          obj, lvl, __FILE__, __LINE__, 0,           \
-                         easy::Thread::GetCurrentThread()->id(),    \
+                         easy::Thread::GetCurrentThreadId(),    \
                          easy::Coroutine::CurrentCoroutineId(),     \
                          easy::util::timestamp(),                   \
-                         easy::Thread::GetCurrentThread()->name())) \
+                         easy::Thread::GetCurrentThreadName())) \
       .getSS()
 
 #define EASY_LOG_TRACE(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::trace)
@@ -34,10 +34,10 @@
   if (obj->level() <= lvl)                                          \
   easy::LogEventRAII(std::make_shared<easy::LogEvent>(              \
                          obj, lvl, __FILE__, __LINE__, 0,           \
-                         easy::Thread::GetCurrentThread()->id(),    \
+                         easy::Thread::GetCurrentThreadId(),    \
                          easy::Coroutine::CurrentCoroutineId(),     \
                          easy::util::timestamp(),                   \
-                         easy::Thread::GetCurrentThread()->name())) \
+                         easy::Thread::GetCurrentThreadName())) \
       .event()                                                      \
       ->format(fmt, __VA_ARGS__)
 
