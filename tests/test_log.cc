@@ -1,9 +1,44 @@
 #include "easy/base/LogAppender.h"
+#include "easy/base/LogFormatter.h"
 #include "easy/base/Logger.h"
+#include "easy/base/common.h"
 
 #include <unistd.h>
 #include <iostream>
 #include <memory>
+
+void bench(const char* file, bool kLongLog)
+{
+  auto logger = std::make_shared<easy::Logger>("bench");
+
+  easy::LogFormatter::ptr formatter = std::make_shared<easy::LogFormatter>("%m");
+
+  easy::FileLogAppender::ptr fileAppender =
+      std::make_shared<easy::FileLogAppender>(file);
+
+  fileAppender->setFormatter(formatter);
+  logger->addAppender(fileAppender);
+
+
+  int64_t start = easy::util::timestamp();
+  size_t n = 1000 * 1000;
+  std::string content = "Hello 0123456789 abcdefghijklmnopqrstuvwxyz";
+  std::string empty = " ";
+  std::string longStr(3000, 'X');
+  longStr += " ";
+  size_t len = content.length() +
+               (kLongLog ? longStr.length() : empty.length()) + sizeof(int);
+  for (size_t i = 0; i < n; ++i)
+  {
+    EASY_LOG_DEBUG(logger) << content << (kLongLog ? longStr : empty) << i;
+  }
+  int64_t end = easy::util::timestamp();
+  double seconds =
+      static_cast<double>((end - start) / easy::util::kMicroSecondsPerSecond);
+  printf("%12s:%f seconds, %ld bytes, %10.2f msg/s, %.2f MiB/s\n", file,
+         seconds, n * len, static_cast<double>(n) / seconds,
+         static_cast<double>(n * len) / seconds / (1024 * 1024));
+}
 
 void test_logger()
 {
@@ -41,5 +76,8 @@ void test_logger()
 int main()
 {
   test_logger();
+  bench("/dev/null", true);
+  bench("/tmp/log", true);
+  bench("./bench.log", true);
   return 0;
 }
