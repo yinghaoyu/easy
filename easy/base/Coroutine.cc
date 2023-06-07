@@ -1,8 +1,8 @@
-#include "Coroutine.h"
-#include "Atomic.h"
-#include "Logger.h"
-#include "Scheduler.h"
-#include "easy_define.h"
+#include "easy/base/Coroutine.h"
+#include "easy/base/Atomic.h"
+#include "easy/base/Logger.h"
+#include "easy/base/Scheduler.h"
+#include "easy/base/easy_define.h"
 
 #include <sys/mman.h>
 #include <cassert>

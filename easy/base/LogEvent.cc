@@ -12,7 +12,7 @@ LogEvent::LogEvent(Logger::ptr logger,
                    uint32_t elapse,
                    uint32_t threadId,
                    uint32_t coroutineId,
-                   int64_t time,
+                   Timestamp time,
                    const std::string &threadName)
     : fileName_(slash_walk(file, file)),
       line_(line),

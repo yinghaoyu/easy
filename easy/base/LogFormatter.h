@@ -12,7 +12,6 @@
 
 namespace easy
 {
-
 // 日志格式器
 class LogFormatter
 {
@@ -156,17 +155,8 @@ class DateTimeFormatItem : public LogFormatter::FormatItem
 {
  public:
   DateTimeFormatItem(const std::string &format = "%Y-%m-%d %H:%M:%S")
+      : format_(format)
   {
-    auto dot = format.find_first_of('.');
-    if (dot == std::string::npos)
-    {
-      date_time_format_ = format;
-    }
-    else
-    {
-      date_time_format_ = format.substr(0, dot);
-      microsecond_format_ = format.substr(dot);
-    }
   }
 
   void format(std::ostream &os,
@@ -174,27 +164,11 @@ class DateTimeFormatItem : public LogFormatter::FormatItem
               LogLevel::Level level,
               LogEvent::ptr event) override
   {
-    struct tm tm_time;
-    int64_t timestamp = event->timestamp();
-    time_t seconds =
-        static_cast<time_t>(timestamp / util::kMicroSecondsPerSecond);
-    localtime_r(&seconds, &tm_time);
-    char buf[64] = {0};
-
-    strftime(buf, sizeof(buf), date_time_format_.c_str(), &tm_time);
-    os << buf;
-    if (!microsecond_format_.empty())
-    {
-      memset(buf, 0, sizeof(buf));
-      int64_t microseconds = timestamp % util::kMicroSecondsPerSecond;
-      snprintf(buf, sizeof(buf), microsecond_format_.c_str(), microseconds);
-      os << buf;
-    }
+    os << event->timestamp().microSecondsSinceEpoch();//.toString(format_);
   }
 
  private:
-  std::string date_time_format_;
-  std::string microsecond_format_;
+  std::string format_;
 };
 
 class FilenameFormatItem : public LogFormatter::FormatItem

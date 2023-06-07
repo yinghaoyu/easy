@@ -1,6 +1,7 @@
 #include "easy/base/LogAppender.h"
 #include "easy/base/LogFormatter.h"
 #include "easy/base/Logger.h"
+#include "easy/base/common.h"
 
 #include <iostream>
 
@@ -54,8 +55,8 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
 {
   if (shouldLog(level))
   {
-    int64_t now = event->timestamp();
-    if (now >= (last_time_ + kRoutineInterval))
+    Timestamp now = event->timestamp();
+    if (timeDifference(now, last_time_) >= kRoutineInterval)
     {
       // 把文件 mov 后，进程已经打开的文件 inode 不会改变
       // 需要重新打开才会创建新的文件，inode 才会替换

@@ -1,11 +1,12 @@
 #ifndef __EASY_LOG_SINK_H__
 #define __EASY_LOG_SINK_H__
 
-#include <fstream>
-#include <memory>
-
 #include "easy/base/LogLevel.h"
 #include "easy/base/Mutex.h"
+#include "easy/base/Timestamp.h"
+
+#include <fstream>
+#include <memory>
 
 namespace easy
 {
@@ -75,7 +76,7 @@ class FileLogAppender : public LogAppender
  private:
   std::string filename_;
   std::ofstream filestream_;
-  int64_t last_time_ = 0;
+  Timestamp last_time_;
 
   static const int kRoutineInterval = 3;
 };

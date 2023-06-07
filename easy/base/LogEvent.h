@@ -2,6 +2,7 @@
 #define __EASY_LOG_EVENT_H__
 
 #include "easy/base/LogLevel.h"
+#include "easy/base/Timestamp.h"
 
 #include <memory>
 #include <sstream>
@@ -23,7 +24,7 @@ class LogEvent
                     uint32_t elapse,
                     uint32_t thread_id,
                     uint32_t coroutine_id,
-                    int64_t time,
+                    Timestamp time,
                     const std::string &thread_name);
 
   ~LogEvent() = default;
@@ -33,7 +34,7 @@ class LogEvent
   uint32_t elapse() const { return elapse_; }
   uint32_t threadId() const { return threadId_; }
   uint32_t coroutineId() const { return coroutineId_; }
-  int64_t timestamp() const { return timestamp_; }
+  Timestamp timestamp() const { return timestamp_; }
   const std::string &threadName() const { return threadName_; }
   std::string content() const { return contentSS_.str(); }
   std::shared_ptr<Logger> logger() const { return logger_; }
@@ -66,7 +67,7 @@ class LogEvent
   uint32_t elapse_ = 0;             // 程序启动开始到现在的毫秒数
   uint32_t threadId_ = 0;           // 线程id
   uint32_t coroutineId_ = 0;        // 协程id
-  int64_t timestamp_ = 0;           // 时间戳
+  Timestamp timestamp_;             // 时间戳
   std::string threadName_;          // 线程名
   std::stringstream contentSS_;     // 日志内容流
   std::shared_ptr<Logger> logger_;  // 日志事件归属的日志器

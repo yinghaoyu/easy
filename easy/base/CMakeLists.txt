@@ -8,6 +8,7 @@ set(base_SRCS
   Thread.cc
   Mutex.cc
   Scheduler.cc
+  Timestamp.cc
   common.cc
   )
 

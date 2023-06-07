@@ -10,7 +10,7 @@
 #include "easy/base/LogLevel.h"
 #include "easy/base/Singleton.h"
 #include "easy/base/Thread.h"
-#include "easy/base/common.h"
+#include "easy/base/Timestamp.h"
 #include "easy/base/noncopyable.h"
 
 #define EASY_LOG_LEVEL(obj, lvl)                                               \
@@ -18,7 +18,7 @@
   easy::LogEventRAII(                                                          \
       std::make_shared<easy::LogEvent>(                                        \
           obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
-          easy::Coroutine::CurrentCoroutineId(), easy::util::timestamp(),      \
+          easy::Coroutine::CurrentCoroutineId(), easy::Timestamp::now(),       \
           easy::Thread::GetCurrentThreadName()))                               \
       .getSS()
 
@@ -34,7 +34,7 @@
   easy::LogEventRAII(                                                          \
       std::make_shared<easy::LogEvent>(                                        \
           obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
-          easy::Coroutine::CurrentCoroutineId(), easy::util::timestamp(),      \
+          easy::Coroutine::CurrentCoroutineId(), easy::Timestamp::now(),     \
           easy::Thread::GetCurrentThreadName()))                               \
       .event()                                                                 \
       ->format(fmt, __VA_ARGS__)

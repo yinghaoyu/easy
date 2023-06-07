@@ -14,16 +14,6 @@ namespace easy
 {
 namespace util
 {
-static const int kMicroSecondsPerSecond = 1000 * 1000;
-
-inline int64_t timestamp()
-{
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  int64_t seconds = tv.tv_sec;
-  return seconds * kMicroSecondsPerSecond + tv.tv_usec;
-}
-
 inline int __lstat(const char *file, struct stat *st = nullptr)
 {
   struct stat lst;
