@@ -2,4 +2,5 @@
 /.clangd
 /.cache
 *.log
+*.out
 compile_commands.json

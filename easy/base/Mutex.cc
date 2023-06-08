@@ -1,5 +1,6 @@
 #include "easy/base/Mutex.h"
 #include "easy/base/Atomic.h"
+#include "easy/base/Logger.h"
 #include "easy_define.h"
 
 namespace easy

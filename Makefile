@@ -1,5 +1,6 @@
 SOURCE_DIR=$(PWD)
 BUILD_DIR=$(SOURCE_DIR)/build
+BUILD_TYPE ?= release
 
 .PHONY: xx
 
@@ -9,7 +10,9 @@ BUILD_DIR=$(SOURCE_DIR)/build
 	else \
 		mkdir -p $(BUILD_DIR); \
 		ln -sf $(BUILD_DIR)/compile_commands.json; \
-		cd $(BUILD_DIR) && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(SOURCE_DIR); \
+		cd $(BUILD_DIR) && cmake \
+			-DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
+			-DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(SOURCE_DIR); \
 	fi
 
 %:
@@ -18,5 +21,7 @@ BUILD_DIR=$(SOURCE_DIR)/build
 	else \
 		mkdir -p $(BUILD_DIR); \
 		ln -sf $(BUILD_DIR)/compile_commands.json; \
-		cd $(BUILD_DIR) && cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(SOURCE_DIR); \
+		cd $(BUILD_DIR) && cmake \
+			-DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
+			-DCMAKE_EXPORT_COMPILE_COMMANDS=ON $(SOURCE_DIR); \
 	fi

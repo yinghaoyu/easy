@@ -29,12 +29,27 @@ class MutexLock : noncopyable
 class MutexLockGuard : noncopyable
 {
  public:
-  MutexLockGuard(MutexLock &mutex) : mutex_(mutex) { mutex_.lock(); }
+  MutexLockGuard(MutexLock &mutex) : mutex_(mutex)
+  {
+    if (!locked_)
+    {
+      mutex_.lock();
+      locked_ = true;
+    }
+  }
 
-  ~MutexLockGuard() { mutex_.unlock(); }
+  ~MutexLockGuard()
+  {
+    if (locked_)
+    {
+      locked_ = false;
+      mutex_.unlock();
+    }
+  }
 
  private:
   MutexLock &mutex_;
+  bool locked_{false};
 };
 
 class RWLock : noncopyable
@@ -54,31 +69,61 @@ class RWLock : noncopyable
 class ReadLockGuard : noncopyable
 {
  public:
-  ReadLockGuard(RWLock &mutex) : mutex_(mutex) { mutex_.rdlock(); }
+  ReadLockGuard(RWLock &mutex) : mutex_(mutex) { lock(); }
 
-  ~ReadLockGuard() { mutex_.unlock(); }
+  ~ReadLockGuard() { unlock(); }
 
-  void lock() { mutex_.rdlock(); }
+  void lock()
+  {
+    if (!locked_)
+    {
+      mutex_.rdlock();
+      locked_ = true;
+    }
+  }
 
-  void unlock() { mutex_.unlock(); }
+  void unlock()
+  {
+    if (locked_)
+    {
+      locked_ = false;
+      mutex_.unlock();
+    }
+  }
 
  private:
   RWLock &mutex_;
+  bool locked_{false};
 };
 
 class WriteLockGuard : noncopyable
 {
  public:
-  WriteLockGuard(RWLock &mutex) : mutex_(mutex) { mutex_.wrlock(); }
+  WriteLockGuard(RWLock &mutex) : mutex_(mutex) { lock(); }
 
-  ~WriteLockGuard() { mutex_.unlock(); }
+  ~WriteLockGuard() { unlock(); }
 
-  void lock() { mutex_.wrlock(); }
+  void lock()
+  {
+    if (!locked_)
+    {
+      mutex_.wrlock();
+      locked_ = true;
+    }
+  }
 
-  void unlock() { mutex_.unlock(); }
+  void unlock()
+  {
+    if (locked_)
+    {
+      locked_ = false;
+      mutex_.unlock();
+    }
+  }
 
  private:
   RWLock &mutex_;
+  bool locked_{false};
 };
 
 class SpinLock : noncopyable
@@ -99,12 +144,27 @@ class SpinLock : noncopyable
 class SpinLockGuard : noncopyable
 {
  public:
-  SpinLockGuard(SpinLock &mutex) : mutex_(mutex) { mutex_.lock(); }
+  SpinLockGuard(SpinLock &mutex) : mutex_(mutex)
+  {
+    if (!locked_)
+    {
+      mutex_.lock();
+      locked_ = true;
+    }
+  }
 
-  ~SpinLockGuard() { mutex_.unlock(); }
+  ~SpinLockGuard()
+  {
+    if (locked_)
+    {
+      locked_ = false;
+      mutex_.unlock();
+    }
+  }
 
  private:
   SpinLock &mutex_;
+  bool locked_{false};
 };
 
 class Semaphore : noncopyable

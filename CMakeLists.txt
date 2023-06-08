@@ -20,6 +20,7 @@ set(CXX_FLAGS
   -Wwrite-strings # 把常量字符串的地址给一个可变指针时，则发出警告，如char* str = "abc"
   -std=c++11 # 指定语言标准为c++11
   -march=native # 编译代码的cpu和运行bin的cpu不匹配，使bin不能运行
+  -pg # 开启性能分析支持
   )
 
 # 如果机器是32位的，就以32位编译

@@ -56,12 +56,12 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
   if (shouldLog(level))
   {
     Timestamp now = event->timestamp();
-    if (timeDifference(now, last_time_) >= kRoutineInterval)
+    if (timeDifference(now, lastTime_) >= kRoutineIntervalMs)
     {
       // 把文件 mov 后，进程已经打开的文件 inode 不会改变
       // 需要重新打开才会创建新的文件，inode 才会替换
       reopen();
-      last_time_ = now;
+      lastTime_ = now;
     }
     SpinLockGuard lock(lock_);
     if (!formatter_->format(filestream_, logger, level, event))

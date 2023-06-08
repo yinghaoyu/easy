@@ -9,6 +9,8 @@ set(base_SRCS
   Mutex.cc
   Scheduler.cc
   Timestamp.cc
+  Timer.cc
+  IOManager.cc
   common.cc
   )
 

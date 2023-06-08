@@ -12,7 +12,7 @@ void bench(const char *file, bool kLongLog)
   auto logger = std::make_shared<easy::Logger>("bench");
 
   easy::LogFormatter::ptr formatter =
-      std::make_shared<easy::LogFormatter>("%m");
+      std::make_shared<easy::LogFormatter>("%m");  // only message
 
   easy::FileLogAppender::ptr fileAppender =
       std::make_shared<easy::FileLogAppender>(file);

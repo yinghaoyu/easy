@@ -61,7 +61,7 @@ Scheduler::~Scheduler()
   }
 }
 
-bool Scheduler::isStop() // virtual
+bool Scheduler::canStop() // virtual
 {
   ReadLockGuard lock(lock_);
   return !running_ && tasks_.empty() && activeThreadNums_.get() == 0;
@@ -109,7 +109,7 @@ void Scheduler::stop()
   {
     // only one use_caller thread
     running_ = false;
-    if (isStop())
+    if (canStop())
     {
       return;
     }
@@ -127,7 +127,7 @@ void Scheduler::stop()
   {
     // weak up
     tickle();
-    if (!isStop())
+    if (!canStop())
     {
       callerCo_->resume();
     }
@@ -141,7 +141,7 @@ void Scheduler::stop()
     threads_.clear();
   }
 
-  if (isStop())
+  if (canStop())
   {
     return;
   }
@@ -150,13 +150,13 @@ void Scheduler::stop()
 void Scheduler::idle()  // virtual
 {
   EASY_LOG_DEBUG(logger) << "idle";
-  while (!isStop())
+  while (!canStop())
   {
     Coroutine::YieldToHold();
   }
 }
 
-void Scheduler::handleCoroutine(Coroutine::ptr &co)
+void Scheduler::handleCoroutine(Coroutine::ptr co)
 {
   co->sched_resume();
 
@@ -185,7 +185,8 @@ Scheduler::Task::ptr Scheduler::take()
     if (task->threadId_ != -1 &&
         task->threadId_ != Thread::GetCurrentThreadId())
     {
-      // designate thread
+      // weak up for other thread
+      tickle();
       continue;
     }
     EASY_ASSERT(task->co_ || task->cb_);
@@ -204,7 +205,7 @@ void Scheduler::run()
   t_scheduler = this;
   if (Thread::GetCurrentThreadId() != callerTid_)
   {
-    // thread in pool should create a main coroutine as scheduler coroutine
+    // thread in pool should create a coroutine as scheduler coroutine
     t_scheduler_coroutine = Coroutine::GetThis().get();
   }
 

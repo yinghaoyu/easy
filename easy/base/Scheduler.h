@@ -33,7 +33,7 @@ class Scheduler : noncopyable
 
   void stop();
 
-  virtual bool isStop();
+  virtual bool canStop();
 
   bool hasIdleThread() const { return idleThreadNums_.get() > 0; }
 
@@ -78,7 +78,7 @@ class Scheduler : noncopyable
  private:
   virtual void tickle();
 
-  void handleCoroutine(Coroutine::ptr &co);
+  void handleCoroutine(Coroutine::ptr co);
 
   virtual void idle();
 
@@ -95,10 +95,8 @@ class Scheduler : noncopyable
   }
 
  private:
-  // inner class
-  class Task
+  struct Task
   {
-   public:
     typedef std::shared_ptr<Task> ptr;
     Task() {}
 
@@ -111,7 +109,8 @@ class Scheduler : noncopyable
     {
     }
 
-    Task(const std::function<void()> &&cb, int threadId)
+    Task(const std::function<void()> &&cb,
+         int threadId) noexcept  // noexcept for std::move
         : cb_(std::move(cb)), threadId_(threadId)
     {
     }
@@ -125,7 +124,6 @@ class Scheduler : noncopyable
       threadId_ = -1;
     }
 
-   public:
     Coroutine::ptr co_;
     std::function<void()> cb_;
     int threadId_{-1};  // -1 could be scheduled by any thread

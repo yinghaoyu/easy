@@ -164,7 +164,7 @@ class DateTimeFormatItem : public LogFormatter::FormatItem
               LogLevel::Level level,
               LogEvent::ptr event) override
   {
-    os << event->timestamp().microSecondsSinceEpoch();//.toString(format_);
+    os << event->timestamp().toString(format_);
   }
 
  private:

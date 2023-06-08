@@ -76,9 +76,9 @@ class FileLogAppender : public LogAppender
  private:
   std::string filename_;
   std::ofstream filestream_;
-  Timestamp last_time_;
+  Timestamp lastTime_;
 
-  static const int kRoutineInterval = 3;
+  static const int kRoutineIntervalMs = 3000;
 };
 
 }  // namespace easy

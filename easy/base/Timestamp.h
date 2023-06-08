@@ -20,7 +20,7 @@ class Timestamp : public copyable
   {
   }
 
-  ~Timestamp(){}
+  ~Timestamp() {}
 
   bool valid() const { return microSecondsSinceEpoch_ > 0; }
 
@@ -28,7 +28,7 @@ class Timestamp : public copyable
 
   std::string toString(const std::string &format = "%Y-%m-%d %H:%M:%S") const;
 
-  void operator=(const Timestamp& other)
+  void operator=(const Timestamp &other)
   {
     microSecondsSinceEpoch_ = other.microSecondsSinceEpoch_;
   }
@@ -48,18 +48,38 @@ class Timestamp : public copyable
     return microSecondsSinceEpoch_ > other.microSecondsSinceEpoch_;
   }
 
+  bool operator>=(const Timestamp &other)
+  {
+    return microSecondsSinceEpoch_ > other.microSecondsSinceEpoch_ ||
+           microSecondsSinceEpoch_ == other.microSecondsSinceEpoch_;
+  }
+
+  bool operator<=(const Timestamp &other)
+  {
+    return microSecondsSinceEpoch_ < other.microSecondsSinceEpoch_ ||
+           microSecondsSinceEpoch_ == other.microSecondsSinceEpoch_;
+  }
+
   static Timestamp now();
 
   static const int kMicroSecondsPerSecond = 1000 * 1000;
+  static const int kMillisecondPerSeond = 1000;
+  static const int kSecondsPerHour = 60 * 60;
 
  private:
   int64_t microSecondsSinceEpoch_;
 };
 
-inline double timeDifference(Timestamp high, Timestamp low)
+inline int64_t timeDifference(Timestamp high, Timestamp low)
 {
   int64_t diff = high.microSecondsSinceEpoch() - low.microSecondsSinceEpoch();
-  return static_cast<double>(diff) / Timestamp::kMicroSecondsPerSecond;
+  return diff / Timestamp::kMillisecondPerSeond;
+}
+
+inline Timestamp addTime(Timestamp timestamp, int64_t ms)
+{
+  int64_t delta = static_cast<int64_t>(ms * Timestamp::kMillisecondPerSeond);
+  return Timestamp(timestamp.microSecondsSinceEpoch() + delta);
 }
 
 }  // namespace easy
