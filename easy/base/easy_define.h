@@ -14,23 +14,23 @@
 #define EASY_UNLIKELY(x) (x)
 #endif
 
-#define EASY_ASSERT(x)                                      \
-  if (EASY_UNLIKELY(!(x)))                                  \
-  {                                                         \
-    EASY_LOG_ERROR(EASY_LOG_ROOT())                         \
-        << "assertion: " #x << "\nbacktrace:\n"             \
-        << easy::util::backtrace_to_string(100, 2, "    "); \
-    abort();                                                \
+#define EASY_ASSERT(x)                              \
+  if (EASY_UNLIKELY(!(x)))                          \
+  {                                                 \
+    EASY_LOG_ERROR(EASY_LOG_ROOT())                 \
+        << "assertion: " #x << "\nbacktrace:\n"     \
+        << easy::BacktraceToString(100, 2, "    "); \
+    abort();                                        \
   }
 
-#define EASY_ASSERT_MESSAGE(x, w)                           \
-  if (EASY_UNLIKELY(!(x)))                                  \
-  {                                                         \
-    EASY_LOG_ERROR(EASY_LOG_ROOT())                         \
-        << "assertion: " #x << "\n"                         \
-        << w << "\nbacktrace:\n"                            \
-        << easy::util::backtrace_to_string(100, 2, "    "); \
-    abort();                                                \
+#define EASY_ASSERT_MESSAGE(x, w)                   \
+  if (EASY_UNLIKELY(!(x)))                          \
+  {                                                 \
+    EASY_LOG_ERROR(EASY_LOG_ROOT())                 \
+        << "assertion: " #x << "\n"                 \
+        << w << "\nbacktrace:\n"                    \
+        << easy::BacktraceToString(100, 2, "    "); \
+    abort();                                        \
   }
 
 #define EASY_CHECK(x)   \

@@ -1,7 +1,9 @@
 #include "easy/base/Coroutine.h"
 #include "easy/base/Atomic.h"
+#include "easy/base/Config.h"
 #include "easy/base/Logger.h"
 #include "easy/base/Scheduler.h"
+#include "easy/base/common.h"
 #include "easy/base/easy_define.h"
 
 #include <sys/mman.h>
@@ -18,6 +20,11 @@ static AtomicInt<uint64_t> s_coroutine_count{0};
 
 static thread_local Coroutine *t_running_coroutine = nullptr;
 static thread_local Coroutine::ptr t_root_coroutine = nullptr;
+
+static ConfigVar<uint32_t>::ptr co_stack_size =
+    Config::Lookup<uint32_t>("coroutine.stack_size",
+                             128 * 1024,
+                             "coroutine stack size");
 
 class MallocStackAllocator
 {
@@ -52,6 +59,7 @@ Coroutine *NewCoroutine(std::function<void()> cb,
                         size_t stacksize,
                         bool use_caller)
 {
+  stacksize = stacksize ? stacksize : co_stack_size->value();
   Coroutine *p = static_cast<Coroutine *>(
       StackAllocator::Alloc(sizeof(Coroutine) + stacksize));
   return new (p) Coroutine(cb, stacksize, use_caller);
@@ -222,14 +230,14 @@ void Coroutine::MainFunc()
     cur->state_ = EXCEPT;
     EASY_LOG_ERROR(logger) << "Coroutine Except: " << ex.what()
                            << " coroutineId=" << cur->id() << std::endl
-                           << easy::util::backtrace_to_string();
+                           << easy::BacktraceToString();
   }
   catch (...)
   {
     cur->state_ = EXCEPT;
     EASY_LOG_ERROR(logger) << "Fiber Except"
                            << " coroutineId=" << cur->id() << std::endl
-                           << easy::util::backtrace_to_string();
+                           << easy::BacktraceToString();
   }
 
   auto raw_ptr = cur.get();
@@ -238,9 +246,10 @@ void Coroutine::MainFunc()
 
   auto scheduler = Scheduler::GetThis();
 
-  /*if (scheduler && scheduler->callerThreadId_ == Thread::GetCurrentThreadId() &&
-      scheduler->callerCoroutine_.get() != t_running_coroutine)*/
-  if (scheduler && Scheduler::GetSchedulerCoroutine() != t_running_coroutine) {
+  /*if (scheduler && scheduler->callerThreadId_ == Thread::GetCurrentThreadId()
+     && scheduler->callerCoroutine_.get() != t_running_coroutine)*/
+  if (scheduler && Scheduler::GetSchedulerCoroutine() != t_running_coroutine)
+  {
     // only sub coroutine in the scheduler can sched_yield
     raw_ptr->sched_yield();
   }

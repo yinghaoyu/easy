@@ -15,7 +15,7 @@ class Coroutine;
 Coroutine *NewCoroutine();
 
 Coroutine *NewCoroutine(std::function<void()> cb,
-                        size_t stacksize = 128 * 1024,
+                        size_t stacksize = 0,
                         bool use_caller = false);
 
 void FreeCoroutine(Coroutine *ptr);

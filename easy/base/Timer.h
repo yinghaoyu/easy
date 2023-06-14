@@ -58,11 +58,11 @@ class TimerManager : noncopyable
 
   virtual ~TimerManager();
 
-  Timer::ptr addTimer(double interval,
+  Timer::ptr addTimer(uint64_t interval,
                       std::function<void()> cb,
                       bool repeat = false);
 
-  Timer::ptr addConditionTimer(double interval,
+  Timer::ptr addConditionTimer(uint64_t interval,
                                std::function<void()> cb,
                                std::weak_ptr<void> weak_cond,
                                bool repeat = false);

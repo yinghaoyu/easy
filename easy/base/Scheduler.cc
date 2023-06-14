@@ -31,9 +31,8 @@ Scheduler::Scheduler(int threadNums, bool use_caller, const std::string &name)
     t_scheduler = this;
 
     // stacksize > 0
-    callerCo_.reset(
-        NewCoroutine(std::bind(&Scheduler::run, this), 128 * 1024, true),
-        FreeCoroutine);
+    callerCo_.reset(NewCoroutine(std::bind(&Scheduler::run, this), 0, true),
+                    FreeCoroutine);
 
     t_scheduler_coroutine = callerCo_.get();
 
@@ -156,7 +155,7 @@ void Scheduler::idle()  // virtual
   }
 }
 
-void Scheduler::handleCoroutine(Coroutine::ptr co)
+void Scheduler::handleCoroutine(Coroutine::ptr &co)
 {
   co->sched_resume();
 
@@ -185,8 +184,7 @@ Scheduler::Task::ptr Scheduler::take()
     if (task->threadId_ != -1 &&
         task->threadId_ != Thread::GetCurrentThreadId())
     {
-      // weak up for other thread
-      tickle();
+      // designate thread
       continue;
     }
     EASY_ASSERT(task->co_ || task->cb_);
@@ -205,7 +203,7 @@ void Scheduler::run()
   t_scheduler = this;
   if (Thread::GetCurrentThreadId() != callerTid_)
   {
-    // thread in pool should create a coroutine as scheduler coroutine
+    // thread in pool should create a main coroutine as scheduler coroutine
     t_scheduler_coroutine = Coroutine::GetThis().get();
   }
 

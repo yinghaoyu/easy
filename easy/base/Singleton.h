@@ -7,7 +7,7 @@ namespace easy
 {
 
 template <typename T>
-class Signleton
+class Singleton
 {
  public:
   static T *GetInstance()

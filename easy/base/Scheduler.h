@@ -78,7 +78,7 @@ class Scheduler : noncopyable
  private:
   virtual void tickle();
 
-  void handleCoroutine(Coroutine::ptr co);
+  void handleCoroutine(Coroutine::ptr& co);
 
   virtual void idle();
 

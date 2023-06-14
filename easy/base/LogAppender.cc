@@ -1,7 +1,7 @@
 #include "easy/base/LogAppender.h"
 #include "easy/base/LogFormatter.h"
 #include "easy/base/Logger.h"
-#include "easy/base/common.h"
+#include "easy/base/FileUtil.h"
 
 #include <iostream>
 
@@ -78,7 +78,7 @@ bool FileLogAppender::reopen()
   {
     filestream_.close();
   }
-  return util::open_for_write(filestream_, filename_, std::ios::app);
+  return FileUtil::OpenForWrite(filestream_, filename_, std::ios::app);
 }
 
 }  // namespace easy

@@ -1,5 +1,6 @@
 #include "easy/base/Timer.h"
 #include "easy/base/Logger.h"
+#include "easy/base/Config.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/Timestamp.h"
 
@@ -115,11 +116,12 @@ TimerManager::TimerManager()
 
 TimerManager::~TimerManager() {}
 
-Timer::ptr TimerManager::addTimer(double interval,
+Timer::ptr TimerManager::addTimer(uint64_t interval,
                                   std::function<void()> cb,
                                   bool repeat)
 {
-  Timer::ptr timer = std::make_shared<Timer>(interval, cb, repeat, this);
+  Timer::ptr timer =
+      easy::protected_make_shared<Timer>(interval, cb, repeat, this);
   WriteLockGuard lock(lock_);
   addTimer(timer, lock);
   return timer;
@@ -134,7 +136,7 @@ static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> cb)
   }
 }
 
-Timer::ptr TimerManager::addConditionTimer(double interval,
+Timer::ptr TimerManager::addConditionTimer(uint64_t interval,
                                            std::function<void()> cb,
                                            std::weak_ptr<void> weak_cond,
                                            bool repeat)
@@ -183,7 +185,7 @@ void TimerManager::listExpiredCallback(std::vector<std::function<void()>> &cbs)
     // nothing happened
     return;
   }
-  Timer::ptr now_timer = std::make_shared<Timer>(now);
+  Timer::ptr now_timer = easy::protected_make_shared<Timer>(now);
   // system time changed, take all timer
   auto end = rollover ? timers_.end() : timers_.lower_bound(now_timer);
   // while (end != timers_.end() && (*end)->expiration_ ==

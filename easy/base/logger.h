@@ -115,7 +115,7 @@ class LoggerManager : noncopyable
   Logger::ptr root_;  // 根日志器
 };
 
-typedef easy::Signleton<LoggerManager> LoggerMgr;
+typedef easy::Singleton<LoggerManager> LoggerMgr;
 
 }  // namespace easy
 

@@ -12,6 +12,9 @@ set(base_SRCS
   Timer.cc
   IOManager.cc
   common.cc
+  FileUtil.cc
+  Config.cc
+  Env.cc
   )
 
 add_library(easy_base ${base_SRCS})

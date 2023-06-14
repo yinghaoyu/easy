@@ -1,53 +1,53 @@
 #ifndef __EASY_COMMON_H__
 #define __EASY_COMMON_H__
 
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <unistd.h>
-#include <fstream>
+#include <cxxabi.h>
+#include <boost/lexical_cast.hpp>
 #include <memory>
-#include <string>
-#include <vector>
 
 namespace easy
 {
-namespace util
+
+void Backtrace(std::vector<std::string>& bt, int size = 64, int skip = 1);
+
+std::string BacktraceToString(int size = 64, int skip = 2,
+                              const std::string& prefix = "");
+
+template <class T, class... Args>
+inline std::shared_ptr<T> protected_make_shared(Args &&...args)
 {
-inline int __lstat(const char *file, struct stat *st = nullptr)
-{
-  struct stat lst;
-  int ret = lstat(file, &lst);
-  if (st)
+  struct Helper : T
   {
-    *st = lst;
-  }
-  return ret;
+    Helper(Args &&...args) : T(std::forward<Args>(args)...) {}
+  };
+  return std::make_shared<Helper>(std::forward<Args>(args)...);
 }
 
-inline int __mkdir(const char *dirname)
+template <class V, class Map, class K>
+V GetParamValue(const Map &m, const K &k, const V &def = V())
 {
-  if (access(dirname, F_OK) == 0)
+  auto it = m.find(k);
+  if (it == m.end())
   {
-    return 0;
+    return def;
   }
-  return mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  try
+  {
+    return boost::lexical_cast<V>(it->second);
+  }
+  catch (...)
+  {
+  }
+  return def;
 }
 
-std::string dirname(const std::string &filename);
-
-bool mkdir_recursive(const std::string &dirname);
-
-bool open_for_write(std::ofstream &ofs,
-                    const std::string &filename,
-                    std::ios_base::openmode mode);
-
-void backtrace(std::vector<std::string> &bt, size_t size = 64, int skip = 1);
-
-std::string backtrace_to_string(int size = 64,
-                                int skip = 2,
-                                const std::string &prefix = "");
-}  // namespace util
+template <class T>
+const char *TypeToName()
+{
+  static const char *s_name =
+      abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr);
+  return s_name;
+}
 
 }  // namespace easy
 
