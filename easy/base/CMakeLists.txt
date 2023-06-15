@@ -15,8 +15,12 @@ set(base_SRCS
   FileUtil.cc
   Config.cc
   Env.cc
+  hook.cc
+  FdManager.cc
   )
 
 add_library(easy_base ${base_SRCS})
 
-target_link_libraries(easy_base pthread)
+find_library(YAMLCPP yaml-cpp)
+
+target_link_libraries(easy_base dl pthread yaml-cpp) # dl for dlsym

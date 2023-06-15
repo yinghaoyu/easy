@@ -19,3 +19,5 @@
 9. `pthread_rwlock_unlock` 连续执行 `2` 次，会发生死锁，需要用一个额外变量记录状态。
 
 10. 线程在 `epoll_wait` 会阻塞，可以利用 `pipe`、`eventfd`、`timefd`、`socket` 等唤醒线程。
+
+11. `gdb` 捕捉不了 `lambda` 表达式内的断点。

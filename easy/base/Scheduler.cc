@@ -3,6 +3,7 @@
 #include "easy/base/Logger.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/easy_define.h"
+#include "easy/base/hook.h"
 
 #include <algorithm>
 #include <functional>
@@ -200,6 +201,8 @@ Scheduler::Task::ptr Scheduler::take()
 
 void Scheduler::run()
 {
+  SetHookEnable(true);  // enable hook
+
   t_scheduler = this;
   if (Thread::GetCurrentThreadId() != callerTid_)
   {
@@ -219,7 +222,9 @@ void Scheduler::run()
     }
     if (!task)
     {
+      idleThreadNums_.increment();
       handleCoroutine(idleCo);
+      idleThreadNums_.decrement();
       continue;
     }
     if (task->cb_)

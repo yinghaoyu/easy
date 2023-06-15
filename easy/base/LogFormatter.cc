@@ -7,7 +7,7 @@
 
 namespace easy
 {
-LogFormatter::LogFormatter(const std::string &pattern)
+LogFormatter::LogFormatter(const std::string &pattern) : pattern_(pattern)
 {
   compile_pattern(pattern);
 }

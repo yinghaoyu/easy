@@ -58,9 +58,9 @@ class IOManager : public Scheduler, public TimerManager
 
   bool removeEvent(int fd, Event event);
 
-  bool triggerEvent(int fd, Event);
+  bool cancelEvent(int fd, Event);  // trigger and cancel
 
-  bool triggerAll(int fd);
+  bool cancelAll(int fd);  // trigger and cancel
 
   static IOManager *GetThis();
 

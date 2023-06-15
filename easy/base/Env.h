@@ -16,7 +16,7 @@ class Env
 
   void add(const std::string &key, const std::string &val);
   bool has(const std::string &key);
-  void del(const std::string &key);
+  void remove(const std::string &key);
   std::string get(const std::string &key,
                   const std::string &default_value = "");
 

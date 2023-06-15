@@ -2,8 +2,10 @@
 #include "easy/base/LogFormatter.h"
 #include "easy/base/Logger.h"
 #include "easy/base/FileUtil.h"
+#include "easy/base/Mutex.h"
 
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 
 namespace easy
 {
@@ -43,6 +45,24 @@ void ConsoleLogAppender::log(std::shared_ptr<Logger> logger,
   }
 }
 
+std::string ConsoleLogAppender::toYamlString()
+{
+  SpinLockGuard lock(lock_);
+  YAML::Node node;
+  node["type"] = "ConsoleLogAppender";
+  if (level_ != LogLevel::off)
+  {
+    node["level"] = LogLevel::toString(level_);
+  }
+  if (hasFormatter_ && formatter_)
+  {
+    node["formatter"] = formatter_->pattern();
+  }
+  std::stringstream ss;
+  ss << node;
+  return ss.str();
+}
+
 FileLogAppender::FileLogAppender(const std::string &filename)
     : filename_(filename)
 {
@@ -69,6 +89,25 @@ void FileLogAppender::log(std::shared_ptr<Logger> logger,
       std::cout << "error" << std::endl;
     }
   }
+}
+
+std::string FileLogAppender::toYamlString()
+{
+  SpinLockGuard lock(lock_);
+  YAML::Node node;
+  node["type"] = "FileLogAppender";
+  node["file"] = filename_;
+  if (level_ != LogLevel::off)
+  {
+    node["level"] = LogLevel::toString(level_);
+  }
+  if (hasFormatter_ && formatter_)
+  {
+    node["formatter"] = formatter_->pattern();
+  }
+  std::stringstream ss;
+  ss << node;
+  return ss.str();
 }
 
 bool FileLogAppender::reopen()

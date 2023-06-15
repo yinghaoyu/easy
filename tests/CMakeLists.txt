@@ -12,3 +12,12 @@ target_link_libraries(test_scheduler easy_base)
 
 add_executable(test_iomanager test_iomanager.cc)
 target_link_libraries(test_iomanager easy_base)
+
+add_executable(test_env test_env.cc)
+target_link_libraries(test_env easy_base)
+
+add_executable(test_config test_config.cc)
+target_link_libraries(test_config easy_base)
+
+add_executable(test_hook test_hook.cc)
+target_link_libraries(test_hook easy_base)

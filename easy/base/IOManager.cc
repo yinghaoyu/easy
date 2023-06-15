@@ -216,7 +216,7 @@ bool IOManager::removeEvent(int fd, Event event)
   return true;
 }
 
-bool IOManager::triggerEvent(int fd, Event event)
+bool IOManager::cancelEvent(int fd, Event event)
 {
   FdContext *fd_ctx = nullptr;
   {
@@ -253,7 +253,7 @@ bool IOManager::triggerEvent(int fd, Event event)
   return true;
 }
 
-bool IOManager::triggerAll(int fd)
+bool IOManager::cancelAll(int fd)
 {
   FdContext *fd_ctx = nullptr;
   {

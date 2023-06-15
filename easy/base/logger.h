@@ -90,6 +90,8 @@ class Logger : public std::enable_shared_from_this<Logger>
   void setFormatter(const std::string &val);
   std::shared_ptr<LogFormatter> formatter();
 
+  std::string toYamlString();
+
   bool reopen();
 
  private:
@@ -106,6 +108,11 @@ class LoggerManager : noncopyable
  public:
   LoggerManager();
   Logger::ptr getLogger(const std::string &name);
+
+
+  Logger::ptr getRoot() const { return root_; }
+
+  std::string toYamlString();
 
   bool reopen();
 

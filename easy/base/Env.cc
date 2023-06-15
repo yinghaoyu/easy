@@ -83,7 +83,7 @@ bool Env::has(const std::string &key)
   return it != args_.end();
 }
 
-void Env::del(const std::string &key)
+void Env::remove(const std::string &key)
 {
   WriteLockGuard lock(lock_);
   args_.erase(key);
@@ -105,7 +105,7 @@ void Env::addHelp(const std::string &key, const std::string &desc)
 
 void Env::removeHelp(const std::string &key)
 {
-WriteLockGuard lock(lock_);
+  WriteLockGuard lock(lock_);
   for (auto it = helps_.begin(); it != helps_.end();)
   {
     if (it->first == key)
@@ -135,8 +135,7 @@ bool Env::setEnv(const std::string &key, const std::string &val)
   return !setenv(key.c_str(), val.c_str(), 1);
 }
 
-std::string Env::env(const std::string &key,
-                        const std::string &default_value)
+std::string Env::env(const std::string &key, const std::string &default_value)
 {
   const char *v = getenv(key.c_str());
   if (v == nullptr)

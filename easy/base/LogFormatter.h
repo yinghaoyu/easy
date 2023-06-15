@@ -45,10 +45,13 @@ class LogFormatter
 
   bool error() const { return error_; }
 
+  const std::string pattern() const { return pattern_; }
+
  private:
   void compile_pattern(const std::string &pattern);
 
  private:
+  std::string pattern_;
   std::vector<FormatItem::ptr> items_;
   bool error_ = false;
 };

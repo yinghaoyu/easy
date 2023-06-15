@@ -29,6 +29,8 @@ class LogAppender
                    LogLevel::Level level,
                    std::shared_ptr<LogEvent> event) = 0;
 
+  virtual std::string toYamlString() = 0;
+
   void setFormatter(std::shared_ptr<LogFormatter> val);
 
   std::shared_ptr<LogFormatter> getFormatter();
@@ -57,6 +59,8 @@ class ConsoleLogAppender : public LogAppender
   void log(std::shared_ptr<Logger> logger,
            LogLevel::Level level,
            std::shared_ptr<LogEvent> event) override;
+
+  std::string toYamlString() override;
 };
 
 // 输出到文件
@@ -70,6 +74,8 @@ class FileLogAppender : public LogAppender
   void log(std::shared_ptr<Logger> logger,
            LogLevel::Level level,
            std::shared_ptr<LogEvent> event) override;
+
+  std::string toYamlString() override;
 
   bool reopen() override;
 
