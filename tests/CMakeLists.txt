@@ -21,3 +21,6 @@ target_link_libraries(test_config easy_base)
 
 add_executable(test_hook test_hook.cc)
 target_link_libraries(test_hook easy_base)
+
+add_executable(test_address test_address.cc)
+target_link_libraries(test_address easy_net easy_base)

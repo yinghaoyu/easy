@@ -44,6 +44,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib) # 指定lib路径
 include_directories(${PROJECT_SOURCE_DIR})
 
 add_subdirectory(easy/base)
+add_subdirectory(easy/net)
 add_subdirectory(tests)
 
 #string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE) # 将CMAKE_BUILD_TYPE变量字符转为大写

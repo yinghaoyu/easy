@@ -129,7 +129,7 @@ static ssize_t do_io(int fd,
   {
     return func(fd, std::forward<Args>(args)...);
   }
-  uint64_t to = ctx->getTimeout(timeout_so);
+  uint64_t ms = ctx->getTimeout(timeout_so);
   auto tinfo = std::make_shared<timer_info>();
 
   ssize_t n = 0;
@@ -145,10 +145,10 @@ retry:
     easy::IOManager *iom = easy::IOManager::GetThis();
     easy::Timer::ptr timer;
     std::weak_ptr<timer_info> winfo(tinfo);
-    if (to != -1UL)
+    if (ms != -1UL)
     {
       timer = iom->addConditionTimer(
-          to,
+          ms,
           [winfo, fd, iom, event]()
           {
             auto t = winfo.lock();
