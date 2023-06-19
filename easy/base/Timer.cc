@@ -1,9 +1,12 @@
 #include "easy/base/Timer.h"
-#include "easy/base/Logger.h"
 #include "easy/base/Config.h"
+#include "easy/base/Logger.h"
+#include "easy/base/Macro.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/Timestamp.h"
 
+#include <sys/timerfd.h>
+#include <unistd.h>
 #include <cstdint>
 #include <ctime>
 #include <functional>
@@ -105,16 +108,19 @@ bool Timer::reset(int64_t interval, bool from_now)
       from_now ? Timestamp::now() : addTime(expiration_, -interval_);
   interval_ = interval;
   expiration_ = addTime(start, interval_);
-  manager_->addTimer(shared_from_this(), lock);
+  manager_->addTimer(shared_from_this());
   return true;
 }
 
 TimerManager::TimerManager()
+    : timerfd_(createTimerfd()), previous_(Timestamp::now())
 {
-  previouseTime_ = Timestamp::now();
 }
 
-TimerManager::~TimerManager() {}
+TimerManager::~TimerManager()
+{
+  close(timerfd_);
+}
 
 Timer::ptr TimerManager::addTimer(uint64_t interval,
                                   std::function<void()> cb,
@@ -123,7 +129,7 @@ Timer::ptr TimerManager::addTimer(uint64_t interval,
   Timer::ptr timer =
       easy::protected_make_shared<Timer>(interval, cb, repeat, this);
   WriteLockGuard lock(lock_);
-  addTimer(timer, lock);
+  addTimer(timer);
   return timer;
 }
 
@@ -142,28 +148,6 @@ Timer::ptr TimerManager::addConditionTimer(uint64_t interval,
                                            bool repeat)
 {
   return addTimer(interval, std::bind(&OnTimer, weak_cond, cb), repeat);
-}
-
-int64_t TimerManager::getNextTimer()
-{
-  ReadLockGuard lock(lock_);
-  tickled_ = false;
-  if (timers_.empty())
-  {
-    return ~0;
-  }
-  auto next = timers_.begin();
-  Timestamp now = Timestamp::now();
-  if (now >= (*next)->expiration_)
-  {
-    // expiration
-    return 0;
-  }
-  else
-  {
-    // waitting time
-    return timeDifference((*next)->expiration_, now);
-  }
 }
 
 void TimerManager::listExpiredCallback(std::vector<std::function<void()>> &cbs)
@@ -186,13 +170,12 @@ void TimerManager::listExpiredCallback(std::vector<std::function<void()>> &cbs)
     return;
   }
   Timer::ptr now_timer = easy::protected_make_shared<Timer>(now);
-  // system time changed, take all timer
+  // system time changed, take out all timer
   auto end = rollover ? timers_.end() : timers_.lower_bound(now_timer);
-  // while (end != timers_.end() && (*end)->expiration_ ==
-  // now_timer->expiration_)
-  //{
-  //  ++end;
-  //}
+  while (end != timers_.end() && (*end)->expiration_ == now_timer->expiration_)
+  {
+    ++end;
+  }
   std::copy(timers_.begin(), end, std::back_inserter(expired));
   timers_.erase(timers_.begin(), end);
 
@@ -203,23 +186,32 @@ void TimerManager::listExpiredCallback(std::vector<std::function<void()>> &cbs)
     if (timer->repeat_)
     {
       timer->expiration_ = addTime(now, timer->interval_);
-      timers_.insert(timer);
+      addTimer(timer);
     }
     else
     {
       timer->cb_ = nullptr;
     }
   }
+
+  Timestamp nextExpire;
+  if (!timers_.empty())
+  {
+    nextExpire = (*timers_.begin())->expiration_;
+  }
+  if (nextExpire.valid())
+  {
+    resetTimerfd(timerfd_, nextExpire);
+  }
 }
 
-void TimerManager::addTimer(Timer::ptr val, WriteLockGuard &lock)
+void TimerManager::addTimer(Timer::ptr timer)
 {
-  auto it = timers_.insert(val).first;
-  bool at_front = (it == timers_.begin());
-  lock.unlock();
-  if (at_front)
+  auto it = timers_.insert(timer).first;
+  bool earliestChanged = (it == timers_.begin());
+  if (earliestChanged)
   {
-    onTimerInsertedAtFront();
+    resetTimerfd(timerfd_, timer->expiration_);
   }
 }
 
@@ -233,13 +225,49 @@ bool TimerManager::detectClockRollover(Timestamp now)
 {
   bool rollover = false;
   // rollover > 1 hour
-  if (now < previouseTime_ &&
-      now < addTime(previouseTime_, -Timestamp::kSecondsPerHour))
+  if (now < previous_ && now < addTime(previous_, -Timestamp::kSecondsPerHour))
   {
     rollover = true;
   }
-  previouseTime_ = now;
+  previous_ = now;
   return rollover;
+}
+
+int TimerManager::createTimerfd()
+{
+  int timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK /*| TFD_CLOEXEC*/);
+  if (timerfd < 0)
+  {
+    EASY_LOG_ERROR(logger) << "Failed in timerfd_create";
+  }
+  return timerfd;
+}
+
+static struct timespec howMuchTimeFromNow(Timestamp when)
+{
+  int64_t microseconds =
+      when.microSecondsSinceEpoch() - Timestamp::now().microSecondsSinceEpoch();
+  if (microseconds < 100)
+  {
+    microseconds = 100;
+  }
+  struct timespec ts;
+  ts.tv_sec =
+      static_cast<time_t>(microseconds / Timestamp::kMicroSecondsPerSecond);
+  ts.tv_nsec = static_cast<long>(
+      (microseconds % Timestamp::kMicroSecondsPerSecond) * 1000);
+  return ts;
+}
+
+void TimerManager::resetTimerfd(int timerfd, Timestamp expiration)
+{
+  // wake up by timerfd_settime()
+  struct itimerspec newValue;
+  struct itimerspec oldValue;
+  memset(&newValue, 0, sizeof newValue);
+  memset(&oldValue, 0, sizeof oldValue);
+  newValue.it_value = howMuchTimeFromNow(expiration);
+  EASY_CHECK(timerfd_settime(timerfd, 0, &newValue, &oldValue));
 }
 
 }  // namespace easy

@@ -1,9 +1,10 @@
 #include "easy/net/Socket.h"
+#include "easy/base/Channel.h"
 #include "easy/base/FdManager.h"
 #include "easy/base/FileUtil.h"
 #include "easy/base/IOManager.h"
 #include "easy/base/Logger.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 #include "easy/base/hook.h"
 
 #include <netinet/tcp.h>
@@ -62,7 +63,7 @@ Socket::ptr Socket::CreateUnixUDPSocket()
 }
 
 Socket::Socket(int family, int type, int protocol)
-    : sockFd_(-1),
+    : fd_(-1),
       family_(family),
       type_(type),
       protocol_(protocol),
@@ -79,7 +80,7 @@ bool Socket::checkConnected()
 {
   struct tcp_info info;
   int len = sizeof(info);
-  getsockopt(sockFd_, IPPROTO_TCP, TCP_INFO, &info,
+  getsockopt(fd_, IPPROTO_TCP, TCP_INFO, &info,
              reinterpret_cast<socklen_t *>(&len));
   isConnected_ = (info.tcpi_state == TCP_ESTABLISHED);
   return isConnected_;
@@ -87,7 +88,7 @@ bool Socket::checkConnected()
 
 int64_t Socket::getSendTimeout()
 {
-  FdCtx::ptr ctx = FdMgr::GetInstance()->getFdCtx(sockFd_);
+  FdCtx::ptr ctx = FdMgr::GetInstance()->getFdCtx(fd_);
   if (ctx)
   {
     return static_cast<int64_t>(ctx->getTimeout(SO_SNDTIMEO));
@@ -107,7 +108,7 @@ void Socket::setSendTimeout(int64_t v)
 
 int64_t Socket::getRecvTimeout()
 {
-  FdCtx::ptr ctx = FdMgr::GetInstance()->getFdCtx(sockFd_);
+  FdCtx::ptr ctx = FdMgr::GetInstance()->getFdCtx(fd_);
   if (ctx)
   {
     return static_cast<int64_t>(ctx->getTimeout(SO_RCVTIMEO));
@@ -127,11 +128,9 @@ void Socket::setRecvTimeout(int64_t v)
 
 bool Socket::getOption(int level, int option, void *result, socklen_t *len)
 {
-  int rt =
-      getsockopt(sockFd_, level, option, result, static_cast<socklen_t *>(len));
-  if (rt)
+  if (getsockopt(fd_, level, option, result, static_cast<socklen_t *>(len)))
   {
-    EASY_LOG_DEBUG(logger) << "getOption sock=" << sockFd_ << " level=" << level
+    EASY_LOG_DEBUG(logger) << "getOption sock=" << fd_ << " level=" << level
                            << " option=" << option << " errno=" << errno
                            << " errstr=" << strerror(errno);
     return false;
@@ -141,9 +140,9 @@ bool Socket::getOption(int level, int option, void *result, socklen_t *len)
 
 bool Socket::setOption(int level, int option, const void *result, socklen_t len)
 {
-  if (setsockopt(sockFd_, level, option, result, static_cast<socklen_t>(len)))
+  if (setsockopt(fd_, level, option, result, static_cast<socklen_t>(len)))
   {
-    EASY_LOG_DEBUG(logger) << "setOption sock=" << sockFd_ << " level=" << level
+    EASY_LOG_DEBUG(logger) << "setOption sock=" << fd_ << " level=" << level
                            << " option=" << option << " errno=" << errno
                            << " errstr=" << strerror(errno);
     return false;
@@ -154,14 +153,14 @@ bool Socket::setOption(int level, int option, const void *result, socklen_t len)
 Socket::ptr Socket::accept()
 {
   Socket::ptr sock = std::make_shared<Socket>(family_, type_, protocol_);
-  int newsock = ::accept(sockFd_, nullptr, nullptr);
-  if (newsock == -1)
+  int newFd = ::accept(fd_, nullptr, nullptr);
+  if (newFd == -1)
   {
-    EASY_LOG_ERROR(logger) << "accept(" << sockFd_ << ") errno=" << errno
+    EASY_LOG_ERROR(logger) << "accept(" << fd_ << ") errno=" << errno
                            << " errstr=" << strerror(errno);
     return nullptr;
   }
-  if (sock->init(newsock))
+  if (sock->init(newFd))
   {
     return sock;
   }
@@ -173,7 +172,7 @@ bool Socket::init(int sock)
   FdCtx::ptr ctx = FdMgr::GetInstance()->getFdCtx(sock);
   if (ctx && ctx->isSocket() && !ctx->isClosed())
   {
-    sockFd_ = sock;
+    fd_ = sock;
     isConnected_ = true;
     initSock();
     getLocalAddress();
@@ -217,7 +216,7 @@ bool Socket::bind(const Address::ptr addr)
     }
   }
 
-  if (::bind(sockFd_, addr->addr(), addr->addrLen()))
+  if (::bind(fd_, addr->addr(), addr->addrLen()))
   {
     EASY_LOG_ERROR(logger) << "bind error errrno=" << errno
                            << " errstr=" << strerror(errno);
@@ -260,10 +259,10 @@ bool Socket::connect(const Address::ptr addr, uint64_t timeout_ms)
 
   if (timeout_ms == -1UL)
   {
-    if (::connect(sockFd_, addr->addr(), addr->addrLen()))
+    if (::connect(fd_, addr->addr(), addr->addrLen()))
     {
       EASY_LOG_ERROR(logger)
-          << "sock=" << sockFd_ << " connect(" << addr->toString()
+          << "sock=" << fd_ << " connect(" << addr->toString()
           << ") error errno=" << errno << " errstr=" << strerror(errno);
       close();
       return false;
@@ -271,11 +270,11 @@ bool Socket::connect(const Address::ptr addr, uint64_t timeout_ms)
   }
   else
   {
-    if (::connect_with_timeout(sockFd_, addr->addr(), addr->addrLen(),
+    if (::connect_with_timeout(fd_, addr->addr(), addr->addrLen(),
                                timeout_ms))
     {
       EASY_LOG_ERROR(logger)
-          << "sock=" << sockFd_ << " connect(" << addr->toString()
+          << "sock=" << fd_ << " connect(" << addr->toString()
           << ") timeout=" << timeout_ms << " error errno=" << errno
           << " errstr=" << strerror(errno);
       close();
@@ -295,7 +294,7 @@ bool Socket::listen(int backlog)
     EASY_LOG_ERROR(logger) << "listen error sock=-1";
     return false;
   }
-  if (::listen(sockFd_, backlog))
+  if (::listen(fd_, backlog))
   {
     EASY_LOG_ERROR(logger) << "listen error errno=" << errno
                            << " errstr=" << strerror(errno);
@@ -306,15 +305,15 @@ bool Socket::listen(int backlog)
 
 bool Socket::close()
 {
-  if (!isConnected_ && sockFd_ == -1)
+  if (!isConnected_ && fd_ == -1)
   {
     return true;
   }
   isConnected_ = false;
-  if (sockFd_ != -1)
+  if (fd_ != -1)
   {
-    ::close(sockFd_);
-    sockFd_ = -1;
+    ::close(fd_);
+    fd_ = -1;
   }
   return false;
 }
@@ -323,7 +322,7 @@ int Socket::send(const void *buffer, size_t length, int flags)
 {
   if (isConnected())
   {
-    return static_cast<int>(::send(sockFd_, buffer, length, flags));
+    return static_cast<int>(::send(fd_, buffer, length, flags));
   }
   return -1;
 }
@@ -336,7 +335,7 @@ int Socket::send(const iovec *buffers, size_t length, int flags)
     memset(&msg, 0, sizeof(msg));
     msg.msg_iov = const_cast<iovec *>(buffers);
     msg.msg_iovlen = length;
-    return static_cast<int>(::sendmsg(sockFd_, &msg, flags));
+    return static_cast<int>(::sendmsg(fd_, &msg, flags));
   }
   return -1;
 }
@@ -349,7 +348,7 @@ int Socket::sendTo(const void *buffer,
   if (isConnected())
   {
     return static_cast<int>(
-        ::sendto(sockFd_, buffer, length, flags, to->addr(), to->addrLen()));
+        ::sendto(fd_, buffer, length, flags, to->addr(), to->addrLen()));
   }
   return -1;
 }
@@ -367,7 +366,7 @@ int Socket::sendTo(const iovec *buffers,
     msg.msg_iovlen = length;
     msg.msg_name = to->addr();
     msg.msg_namelen = to->addrLen();
-    return static_cast<int>(::sendmsg(sockFd_, &msg, flags));
+    return static_cast<int>(::sendmsg(fd_, &msg, flags));
   }
   return -1;
 }
@@ -376,7 +375,7 @@ int Socket::recv(void *buffer, size_t length, int flags)
 {
   if (isConnected())
   {
-    return static_cast<int>(::recv(sockFd_, buffer, length, flags));
+    return static_cast<int>(::recv(fd_, buffer, length, flags));
   }
   return -1;
 }
@@ -389,7 +388,7 @@ int Socket::recv(iovec *buffers, size_t length, int flags)
     memset(&msg, 0, sizeof(msg));
     msg.msg_iov = buffers;
     msg.msg_iovlen = length;
-    return static_cast<int>(::recvmsg(sockFd_, &msg, flags));
+    return static_cast<int>(::recvmsg(fd_, &msg, flags));
   }
   return -1;
 }
@@ -400,7 +399,7 @@ int Socket::recvFrom(void *buffer, size_t length, Address::ptr from, int flags)
   {
     socklen_t len = from->addrLen();
     return static_cast<int>(
-        ::recvfrom(sockFd_, buffer, length, flags, from->addr(), &len));
+        ::recvfrom(fd_, buffer, length, flags, from->addr(), &len));
   }
   return -1;
 }
@@ -418,7 +417,7 @@ int Socket::recvFrom(iovec *buffers,
     msg.msg_iovlen = length;
     msg.msg_name = from->addr();
     msg.msg_namelen = from->addrLen();
-    return static_cast<int>(::recvmsg(sockFd_, &msg, flags));
+    return static_cast<int>(::recvmsg(fd_, &msg, flags));
   }
   return -1;
 }
@@ -447,7 +446,7 @@ Address::ptr Socket::getRemoteAddress()
     break;
   }
   socklen_t addrlen = result->addrLen();
-  if (getpeername(sockFd_, result->addr(), &addrlen))
+  if (getpeername(fd_, result->addr(), &addrlen))
   {
     // EASY_LOG_ERROR(logger)
     //     << "getpeername error sock=" << sock_ << " errno=" << errno
@@ -487,9 +486,9 @@ Address::ptr Socket::getLocalAddress()
     break;
   }
   socklen_t addrlen = result->addrLen();
-  if (getsockname(sockFd_, result->addr(), &addrlen))
+  if (getsockname(fd_, result->addr(), &addrlen))
   {
-    EASY_LOG_ERROR(logger) << "getsockname error sock=" << sockFd_
+    EASY_LOG_ERROR(logger) << "getsockname error sock=" << fd_
                            << " errno=" << errno
                            << " errstr=" << strerror(errno);
     return std::make_shared<UnknownAddress>(family_);
@@ -505,7 +504,7 @@ Address::ptr Socket::getLocalAddress()
 
 bool Socket::isValid() const
 {
-  return sockFd_ != -1;
+  return fd_ != -1;
 }
 
 int Socket::getError()
@@ -521,15 +520,15 @@ int Socket::getError()
 
 std::ostream &Socket::dump(std::ostream &os) const
 {
-  os << "[Socket sock=" << sockFd_ << " is_connected=" << isConnected_
+  os << "[Socket fd=" << fd_ << " connected=" << isConnected_
      << " family=" << family_ << " type=" << type_ << " protocol=" << protocol_;
   if (localAddress_)
   {
-    os << " local_address=" << localAddress_->toString();
+    os << " local=" << localAddress_->toString();
   }
   if (remoteAddress_)
   {
-    os << " remote_address=" << remoteAddress_->toString();
+    os << " remote=" << remoteAddress_->toString();
   }
   os << "]";
   return os;
@@ -544,22 +543,22 @@ std::string Socket::toString() const
 
 bool Socket::cancelRead()
 {
-  return IOManager::GetThis()->cancelEvent(sockFd_, IOManager::READ);
+  return IOManager::GetThis()->cancelEvent(fd_, Channel::READ);
 }
 
 bool Socket::cancelWrite()
 {
-  return IOManager::GetThis()->cancelEvent(sockFd_, IOManager::WRITE);
+  return IOManager::GetThis()->cancelEvent(fd_, Channel::WRITE);
 }
 
 bool Socket::cancelAccept()
 {
-  return IOManager::GetThis()->cancelEvent(sockFd_, IOManager::READ);
+  return IOManager::GetThis()->cancelEvent(fd_, Channel::READ);
 }
 
 bool Socket::cancelAll()
 {
-  return IOManager::GetThis()->cancelAll(sockFd_);
+  return IOManager::GetThis()->cancelAll(fd_);
 }
 
 void Socket::initSock()
@@ -574,8 +573,8 @@ void Socket::initSock()
 
 void Socket::newSock()
 {
-  sockFd_ = ::socket(family_, type_, protocol_);
-  if (EASY_LIKELY(sockFd_ != -1))
+  fd_ = ::socket(family_, type_, protocol_);
+  if (EASY_LIKELY(fd_ != -1))
   {
     initSock();
   }
@@ -585,6 +584,244 @@ void Socket::newSock()
                            << protocol_ << ") errno=" << errno
                            << " errstr=" << strerror(errno);
   }
+}
+
+namespace
+{
+struct _SSLInit
+{
+  _SSLInit()
+  {
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+  }
+};
+
+static _SSLInit s_init;
+
+}  // namespace
+
+SSLSocket::SSLSocket(int family, int type, int protocol)
+    : Socket(family, type, protocol)
+{
+}
+
+Socket::ptr SSLSocket::accept()
+{
+  SSLSocket::ptr sock = std::make_shared<SSLSocket>(family_, type_, protocol_);
+  int newsock = ::accept(fd_, nullptr, nullptr);
+  if (newsock == -1)
+  {
+    EASY_LOG_ERROR(logger) << "accept(" << fd_ << ") errno=" << errno
+                           << " errstr=" << strerror(errno);
+    return nullptr;
+  }
+  sock->ctx_ = ctx_;
+  if (sock->init(newsock))
+  {
+    return sock;
+  }
+  return nullptr;
+}
+
+bool SSLSocket::bind(const Address::ptr addr)
+{
+  return Socket::bind(addr);
+}
+
+bool SSLSocket::connect(const Address::ptr addr, uint64_t timeout_ms)
+{
+  bool v = Socket::connect(addr, timeout_ms);
+  if (v)
+  {
+    ctx_.reset(SSL_CTX_new(SSLv23_client_method()), SSL_CTX_free);
+    ssl_.reset(SSL_new(ctx_.get()), SSL_free);
+    SSL_set_fd(ssl_.get(), fd_);
+    v = (SSL_connect(ssl_.get()) == 1);
+  }
+  return v;
+}
+
+bool SSLSocket::listen(int backlog)
+{
+  return Socket::listen(backlog);
+}
+
+bool SSLSocket::close()
+{
+  return Socket::close();
+}
+
+int SSLSocket::send(const void *buffer, size_t length, int flags)
+{
+  if (ssl_)
+  {
+    return SSL_write(ssl_.get(), buffer, static_cast<int>(length));
+  }
+  return -1;
+}
+
+int SSLSocket::send(const iovec *buffers, size_t length, int flags)
+{
+  if (!ssl_)
+  {
+    return -1;
+  }
+  int total = 0;
+  for (size_t i = 0; i < length; ++i)
+  {
+    int tmp = SSL_write(ssl_.get(), buffers[i].iov_base,
+                        static_cast<int>(buffers[i].iov_len));
+    if (tmp <= 0)
+    {
+      return tmp;
+    }
+    total += tmp;
+    if (tmp != static_cast<int>(buffers[i].iov_len))
+    {
+      break;
+    }
+  }
+  return total;
+}
+
+int SSLSocket::sendTo(const void *buffer,
+                      size_t length,
+                      const Address::ptr to,
+                      int flags)
+{
+  EASY_ASSERT(false);
+  return -1;
+}
+
+int SSLSocket::sendTo(const iovec *buffers,
+                      size_t length,
+                      const Address::ptr to,
+                      int flags)
+{
+  EASY_ASSERT(false);
+  return -1;
+}
+
+int SSLSocket::recv(void *buffer, size_t length, int flags)
+{
+  if (ssl_)
+  {
+    return SSL_read(ssl_.get(), buffer, static_cast<int>(length));
+  }
+  return -1;
+}
+
+int SSLSocket::recv(iovec *buffers, size_t length, int flags)
+{
+  if (!ssl_)
+  {
+    return -1;
+  }
+  int total = 0;
+  for (size_t i = 0; i < length; ++i)
+  {
+    int tmp = SSL_read(ssl_.get(), buffers[i].iov_base,
+                       static_cast<int>(buffers[i].iov_len));
+    if (tmp <= 0)
+    {
+      return tmp;
+    }
+    total += tmp;
+    if (tmp != static_cast<int>(buffers[i].iov_len))
+    {
+      break;
+    }
+  }
+  return total;
+}
+
+int SSLSocket::recvFrom(void *buffer,
+                        size_t length,
+                        Address::ptr from,
+                        int flags)
+{
+  EASY_ASSERT(false);
+  return -1;
+}
+
+int SSLSocket::recvFrom(iovec *buffers,
+                        size_t length,
+                        Address::ptr from,
+                        int flags)
+{
+  EASY_ASSERT(false);
+  return -1;
+}
+
+bool SSLSocket::init(int sock)
+{
+  bool v = Socket::init(sock);
+  if (v)
+  {
+    ssl_.reset(SSL_new(ctx_.get()), SSL_free);
+    SSL_set_fd(ssl_.get(), fd_);
+    v = (SSL_accept(ssl_.get()) == 1);
+  }
+  return v;
+}
+
+bool SSLSocket::loadCertificates(const std::string &cert_file,
+                                 const std::string &key_file)
+{
+  ctx_.reset(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
+  if (SSL_CTX_use_certificate_chain_file(ctx_.get(), cert_file.c_str()) != 1)
+  {
+    EASY_LOG_ERROR(logger) << "SSL_CTX_use_certificate_chain_file(" << cert_file
+                           << ") error";
+    return false;
+  }
+  if (SSL_CTX_use_PrivateKey_file(ctx_.get(), key_file.c_str(),
+                                  SSL_FILETYPE_PEM) != 1)
+  {
+    EASY_LOG_ERROR(logger) << "SSL_CTX_use_PrivateKey_file(" << key_file
+                           << ") error";
+    return false;
+  }
+  if (SSL_CTX_check_private_key(ctx_.get()) != 1)
+  {
+    EASY_LOG_ERROR(logger) << "SSL_CTX_check_private_key cert_file="
+                           << cert_file << " key_file=" << key_file;
+    return false;
+  }
+  return true;
+}
+
+SSLSocket::ptr SSLSocket::CreateTCP(Address::ptr address)
+{
+  return std::make_shared<SSLSocket>(address->family(), TCP, 0);
+}
+
+SSLSocket::ptr SSLSocket::CreateTCPSocket()
+{
+  return std::make_shared<SSLSocket>(IPv4, TCP, 0);
+}
+
+SSLSocket::ptr SSLSocket::CreateTCPSocket6()
+{
+  return std::make_shared<SSLSocket>(IPv6, TCP, 0);
+}
+
+std::ostream &SSLSocket::dump(std::ostream &os) const
+{
+  os << "[SSLSocket fd=" << fd_ << " connected=" << isConnected_
+     << " family=" << family_ << " type=" << type_ << " protocol=" << protocol_;
+  if (localAddress_)
+  {
+    os << " local=" << localAddress_->toString();
+  }
+  if (remoteAddress_)
+  {
+    os << " remote=" << remoteAddress_->toString();
+  }
+  os << "]";
+  return os;
 }
 
 std::ostream &operator<<(std::ostream &os, const Socket &sock)

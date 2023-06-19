@@ -66,25 +66,28 @@ class TimerManager : noncopyable
                                std::function<void()> cb,
                                std::weak_ptr<void> weak_cond,
                                bool repeat = false);
-  int64_t getNextTimer();
 
   void listExpiredCallback(std::vector<std::function<void()>> &fns);
 
   bool hasTimer();
 
- protected:
-  virtual void onTimerInsertedAtFront() = 0;
+  int timerfd() { return timerfd_; }
 
-  void addTimer(Timer::ptr val, WriteLockGuard &lock);
+ protected:
+
+  void addTimer(Timer::ptr timer);
 
  private:
   bool detectClockRollover(Timestamp now);
 
+  int createTimerfd();
+  void resetTimerfd(int timerfd, Timestamp expiration);
+
  private:
   RWLock lock_;
   std::set<Timer::ptr, Timer::Comparator> timers_;
-  bool tickled_{false};
-  Timestamp previouseTime_;
+  const int timerfd_;
+  Timestamp previous_;
 };
 }  // namespace easy
 

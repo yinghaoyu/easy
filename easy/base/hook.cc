@@ -3,7 +3,7 @@
 #include "easy/base/FdManager.h"
 #include "easy/base/IOManager.h"
 #include "easy/base/Logger.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
@@ -157,11 +157,11 @@ retry:
               return;
             }
             t->cancelled = ETIMEDOUT;
-            iom->cancelEvent(fd, static_cast<easy::IOManager::Event>(event));
+            iom->cancelEvent(fd, static_cast<easy::Channel::Event>(event));
           },
           winfo);
     }
-    int ret = iom->addEvent(fd, static_cast<easy::IOManager::Event>(event));
+    int ret = iom->addEvent(fd, static_cast<easy::Channel::Event>(event));
     if (EASY_UNLIKELY(ret))
     {
       EASY_LOG_ERROR(logger)
@@ -324,12 +324,12 @@ extern "C"
               return;
             }
             t->cancelled = ETIMEDOUT;
-            iom->cancelEvent(fd, easy::IOManager::WRITE);
+            iom->cancelEvent(fd, easy::Channel::WRITE);
           },
           winfo);
     }
 
-    int ret = iom->addEvent(fd, easy::IOManager::WRITE);
+    int ret = iom->addEvent(fd, easy::Channel::WRITE);
 
     if (EASY_UNLIKELY(ret))
     {
@@ -381,7 +381,7 @@ extern "C"
 
   int accept(int s, struct sockaddr *addr, socklen_t *addrlen)
   {
-    ssize_t n = do_io(s, accept_f, "accept", easy::IOManager::READ, SO_RCVTIMEO,
+    ssize_t n = do_io(s, accept_f, "accept", easy::Channel::READ, SO_RCVTIMEO,
                       addr, addrlen);
     int fd = static_cast<int>(n);
     if (fd >= 0)
@@ -393,20 +393,20 @@ extern "C"
 
   ssize_t read(int fd, void *buf, size_t count)
   {
-    return do_io(fd, read_f, "read", easy::IOManager::READ, SO_RCVTIMEO, buf,
+    return do_io(fd, read_f, "read", easy::Channel::READ, SO_RCVTIMEO, buf,
                  count);
   }
 
   ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
   {
-    return do_io(fd, readv_f, "readv", easy::IOManager::READ, SO_RCVTIMEO, iov,
+    return do_io(fd, readv_f, "readv", easy::Channel::READ, SO_RCVTIMEO, iov,
                  iovcnt);
   }
 
   ssize_t recv(int sockfd, void *buf, size_t len, int flags)
   {
-    return do_io(sockfd, recv_f, "recv", easy::IOManager::READ, SO_RCVTIMEO,
-                 buf, len, flags);
+    return do_io(sockfd, recv_f, "recv", easy::Channel::READ, SO_RCVTIMEO, buf,
+                 len, flags);
   }
 
   ssize_t recvfrom(int sockfd,
@@ -416,32 +416,32 @@ extern "C"
                    struct sockaddr *src_addr,
                    socklen_t *addrlen)
   {
-    return do_io(sockfd, recvfrom_f, "recvfrom", easy::IOManager::READ,
+    return do_io(sockfd, recvfrom_f, "recvfrom", easy::Channel::READ,
                  SO_RCVTIMEO, buf, len, flags, src_addr, addrlen);
   }
 
   ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
   {
-    return do_io(sockfd, recvmsg_f, "recvmsg", easy::IOManager::READ,
-                 SO_RCVTIMEO, msg, flags);
+    return do_io(sockfd, recvmsg_f, "recvmsg", easy::Channel::READ, SO_RCVTIMEO,
+                 msg, flags);
   }
 
   ssize_t write(int fd, const void *buf, size_t count)
   {
-    return do_io(fd, write_f, "write", easy::IOManager::WRITE, SO_SNDTIMEO, buf,
+    return do_io(fd, write_f, "write", easy::Channel::WRITE, SO_SNDTIMEO, buf,
                  count);
   }
 
   ssize_t writev(int fd, const struct iovec *iov, int iovcnt)
   {
-    return do_io(fd, writev_f, "writev", easy::IOManager::WRITE, SO_SNDTIMEO,
-                 iov, iovcnt);
+    return do_io(fd, writev_f, "writev", easy::Channel::WRITE, SO_SNDTIMEO, iov,
+                 iovcnt);
   }
 
   ssize_t send(int s, const void *msg, size_t len, int flags)
   {
-    return do_io(s, send_f, "send", easy::IOManager::WRITE, SO_SNDTIMEO, msg,
-                 len, flags);
+    return do_io(s, send_f, "send", easy::Channel::WRITE, SO_SNDTIMEO, msg, len,
+                 flags);
   }
   ssize_t sendto(int s,
                  const void *msg,
@@ -450,13 +450,13 @@ extern "C"
                  const struct sockaddr *to,
                  socklen_t tolen)
   {
-    return do_io(s, sendto_f, "sendto", easy::IOManager::WRITE, SO_SNDTIMEO,
-                 msg, len, flags, to, tolen);
+    return do_io(s, sendto_f, "sendto", easy::Channel::WRITE, SO_SNDTIMEO, msg,
+                 len, flags, to, tolen);
   }
 
   ssize_t sendmsg(int s, const struct msghdr *msg, int flags)
   {
-    return do_io(s, sendmsg_f, "sendmsg", easy::IOManager::WRITE, SO_SNDTIMEO,
+    return do_io(s, sendmsg_f, "sendmsg", easy::Channel::WRITE, SO_SNDTIMEO,
                  msg, flags);
   }
 

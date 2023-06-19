@@ -4,7 +4,7 @@
 #include "easy/base/Logger.h"
 #include "easy/base/Scheduler.h"
 #include "easy/base/common.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 
 #include <sys/mman.h>
 #include <cassert>
@@ -135,7 +135,7 @@ void Coroutine::sched_resume()
 void Coroutine::sched_yield()
 {
   Coroutine::SetThis(Scheduler::GetSchedulerCoroutine());
-  // state_ = HOLD;  this wrong
+  // state_ = HOLD;  don't do this
 
   EASY_CHECK(swapcontext(&ctx_, &Scheduler::GetSchedulerCoroutine()->ctx_));
 }
@@ -182,11 +182,11 @@ Coroutine::ptr Coroutine::GetThis()
   {
     return t_running_coroutine->shared_from_this();
   }
-  Coroutine::ptr main_fiber(NewCoroutine(), FreeCoroutine);
+  Coroutine::ptr root(NewCoroutine(), FreeCoroutine);
 
-  EASY_ASSERT(t_running_coroutine == main_fiber.get());
+  EASY_ASSERT(t_running_coroutine == root.get());
 
-  t_root_coroutine = std::move(main_fiber);
+  t_root_coroutine = std::move(root);
 
   return t_running_coroutine->shared_from_this();
 }

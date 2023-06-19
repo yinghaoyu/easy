@@ -2,7 +2,7 @@
 #include "easy/base/Coroutine.h"
 #include "easy/base/Logger.h"
 #include "easy/base/Mutex.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 #include "easy/base/hook.h"
 
 #include <algorithm>
@@ -67,7 +67,7 @@ bool Scheduler::canStop()  // virtual
   return !running_ && tasks_.empty() && activeThreadNums_.get() == 0;
 }
 
-void Scheduler::tickle()  // virtual
+void Scheduler::weakup()  // virtual
 {
 }
 
@@ -83,21 +83,19 @@ Coroutine *Scheduler::GetSchedulerCoroutine()
 
 void Scheduler::start()
 {
+  WriteLockGuard lock(lock_);
+  if (running_)
   {
-    WriteLockGuard lock(lock_);
-    if (running_)
-    {
-      return;
-    }
-    running_ = true;
-    EASY_ASSERT(threads_.empty());
-    threads_.resize(threadNums_);
-    for (size_t i = 0; i < threadNums_; i++)
-    {
-      threads_[i] = std::make_shared<Thread>(std::bind(&Scheduler::run, this),
-                                             name_ + "_" + std::to_string(i));
-      threadIds_.push_back(threads_[i]->id());
-    }
+    return;
+  }
+  running_ = true;
+  EASY_ASSERT(threads_.empty());
+  threads_.resize(threadNums_);
+  for (size_t i = 0; i < threadNums_; i++)
+  {
+    threads_[i] = std::make_shared<Thread>(std::bind(&Scheduler::run, this),
+                                           name_ + "_" + std::to_string(i));
+    threadIds_.push_back(threads_[i]->id());
   }
 }
 
@@ -118,14 +116,12 @@ void Scheduler::stop()
 
   for (size_t i = 0; i < threadNums_; ++i)
   {
-    // weak up
-    tickle();
+    weakup();
   }
 
   if (callerCo_)
   {
-    // weak up
-    tickle();
+    weakup();
     if (!canStop())
     {
       callerCo_->resume();
@@ -209,20 +205,20 @@ void Scheduler::run()
     t_scheduler_coroutine = Coroutine::GetThis().get();
   }
 
-  Coroutine::ptr idleCo(NewCoroutine(std::bind(&Scheduler::idle, this)),
+  Coroutine::ptr idle(NewCoroutine(std::bind(&Scheduler::idle, this)),
                         FreeCoroutine);
 
   while (true)
   {
     auto task = take();
-    if (idleCo->finish())
+    if (idle->finish())
     {
       break;
     }
     if (!task)
     {
       idleThreadNums_.increment();
-      handleCoroutine(idleCo);
+      handleCoroutine(idle);
       idleThreadNums_.decrement();
       continue;
     }
@@ -230,7 +226,7 @@ void Scheduler::run()
     {
       EASY_ASSERT(!task->co_);
       Coroutine::ptr co(NewCoroutine(task->cb_), FreeCoroutine);
-      task->co_ = co;
+      task->co_ = std::move(co);
       task->cb_ = nullptr;
     }
     if (task->co_ && !task->co_->finish())

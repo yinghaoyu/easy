@@ -27,7 +27,7 @@ class Scheduler : noncopyable
 
   virtual ~Scheduler();
 
-  const std::string &getName() const { return name_; }
+  const std::string &name() const { return name_; }
 
   void start();
 
@@ -42,32 +42,32 @@ class Scheduler : noncopyable
   template <typename T>
   void schedule(T co, int threadId = -1)
   {
-    bool should_tickle = false;
+    bool should_weakup = false;
     {
       WriteLockGuard lock(lock_);
-      should_tickle = scheduleNonBlock(co, threadId);
+      should_weakup = scheduleNonBlock(co, threadId);
     }
-    if (should_tickle)
+    if (should_weakup)
     {
-      tickle();
+      weakup();
     }
   }
 
   template <typename TaskIterator>
   void schedule(TaskIterator begin, TaskIterator end)
   {
-    bool need_tickle = false;
+    bool need_weakup = false;
     {
       WriteLockGuard lock(lock_);
       while (begin != end)
       {
-        need_tickle = scheduleNonBlock(*begin) || need_tickle;
+        need_weakup = scheduleNonBlock(*begin) || need_weakup;
         ++begin;
       }
     }
-    if (need_tickle)
+    if (need_weakup)
     {
-      tickle();
+      weakup();
     }
   }
 
@@ -76,7 +76,7 @@ class Scheduler : noncopyable
   static Coroutine *GetSchedulerCoroutine();
 
  private:
-  virtual void tickle();
+  virtual void weakup();
 
   void handleCoroutine(Coroutine::ptr& co);
 
@@ -85,13 +85,13 @@ class Scheduler : noncopyable
   template <typename T>
   bool scheduleNonBlock(T &&co, long thread_id = -1)
   {
-    bool should_tickle = tasks_.empty();
+    bool should_weakup = tasks_.empty();
     auto task = std::make_shared<Task>(std::forward<T>(co), thread_id);
     if (task->co_ || task->cb_)
     {
       tasks_.push_back(std::move(task));
     }
-    return should_tickle;
+    return should_weakup;
   }
 
  private:

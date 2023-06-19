@@ -1,5 +1,5 @@
 #include "easy/base/Condition.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 
 namespace easy
 {

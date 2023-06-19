@@ -2,12 +2,12 @@
 #define __EASY_IOMANAGER_H__
 
 #include "easy/base/Atomic.h"
+#include "easy/base/Channel.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/Scheduler.h"
 #include "easy/base/Timer.h"
 #include "easy/base/noncopyable.h"
 
-#include <sys/epoll.h>
 #include <functional>
 #include <vector>
 
@@ -16,73 +16,47 @@ namespace easy
 class IOManager : public Scheduler, public TimerManager
 {
  public:
-  enum Event
-  {
-    NONE = 0x00,
-    READ = EPOLLIN,
-    WRITE = EPOLLOUT,
-  };
-
- private:
-  class FdContext
-  {
-   public:
-    struct EventContext
-    {
-      Scheduler *scheduler_ = nullptr;
-      Coroutine::ptr co_;
-      std::function<void()> cb_;
-    };
-
-    EventContext &eventContext(Event event);
-
-    void resetContext(EventContext &ctx);
-
-    void triggerEvent(Event event);
-
-    EventContext read_;
-    EventContext write_;
-    int fd_;
-    Event events_ = NONE;
-    SpinLock lock_;
-  };
-
- public:
   IOManager(int threadNums = 1,
             bool use_caller = false,
             const std::string &name = "");
 
   ~IOManager();
 
-  int addEvent(int fd, Event event, std::function<void()> cb = nullptr);
+  int addEvent(int fd,
+               Channel::Event event,
+               std::function<void()> cb = nullptr);
 
-  bool removeEvent(int fd, Event event);
+  bool removeEvent(int fd, Channel::Event event);
 
-  bool cancelEvent(int fd, Event);  // trigger and cancel
+  // trigger and cancel
+  bool cancelEvent(int fd, Channel::Event);
 
-  bool cancelAll(int fd);  // trigger and cancel
+  // trigger and cancel
+  bool cancelAll(int fd);
 
   static IOManager *GetThis();
 
  protected:
-  void tickle() override;
+  void weakup() override;
 
   bool canStop() override;
 
   void idle() override;
 
-  void onTimerInsertedAtFront() override;
+  void resizeChannels(size_t size);
 
-  void contextResize(size_t size);
-
-  bool stopping(int64_t &timeout);
+  void resizeRevent(size_t size);
 
  private:
+
+  const int kEPollTimeMs = 10000;
+
   int epollFd_;
-  int tickleFds_[2];
+  int weakupFds_[2];
   AtomicInt<int> pendingEventCount_;
   RWLock lock_;
-  std::vector<FdContext *> fdContexts_;
+  std::vector<epoll_event *> events_;  // events from epoll_wait
+  std::vector<Channel *> channels_;
 };
 
 }  // namespace easy

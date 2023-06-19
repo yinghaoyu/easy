@@ -2,12 +2,13 @@
 #include "easy/base/Logger.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/Scheduler.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include <algorithm>
 #include <functional>
 #include <memory>
 
@@ -23,66 +24,31 @@ IgnoreSigPipe initObj;
 
 static Logger::ptr logger = EASY_LOG_NAME("system");
 
-IOManager::FdContext::EventContext &IOManager::FdContext::eventContext(
-    Event event)
-{
-  switch (event)
-  {
-  case IOManager::READ:
-    return read_;
-  case IOManager::WRITE:
-    return write_;
-  default:
-    EASY_ASSERT_MESSAGE(false, "getContext");
-  }
-  throw std::invalid_argument("getContext invalid event");
-}
-
-void IOManager::FdContext::resetContext(EventContext &ctx)
-{
-  ctx.scheduler_ = nullptr;
-  ctx.co_.reset();
-  ctx.cb_ = nullptr;
-}
-
-void IOManager::FdContext::triggerEvent(IOManager::Event event)
-{
-  if (EASY_UNLIKELY(!(events_ & event)))
-  {
-    return;
-  }
-  events_ = static_cast<Event>(events_ & ~event);
-  EventContext &ctx = eventContext(event);
-  if (ctx.cb_)
-  {
-    ctx.scheduler_->schedule(std::move(ctx.cb_));
-  }
-  else
-  {
-    ctx.scheduler_->schedule(std::move(ctx.co_));
-  }
-  EASY_ASSERT(!ctx.cb_ && !ctx.co_);  // std::move
-  ctx.scheduler_ = nullptr;
-}
-
 IOManager::IOManager(int threadNums, bool use_caller, const std::string &name)
     : Scheduler(threadNums, use_caller, name)
 {
-  epollFd_ = epoll_create(5000);
+  epollFd_ = epoll_create1(EPOLL_CLOEXEC);
   EASY_ASSERT(epollFd_ > 0);
 
-  EASY_CHECK(pipe(tickleFds_));
+  EASY_CHECK(pipe(weakupFds_));
 
   epoll_event event;
   memset(&event, 0, sizeof(epoll_event));
-  event.events = EPOLLIN | EPOLLET;  // level trigger
-  event.data.fd = tickleFds_[0];
+  event.events = EPOLLIN | EPOLLET;  // epoll lt
+  event.data.fd = weakupFds_[0];
 
-  EASY_CHECK(fcntl(tickleFds_[0], F_SETFL, O_NONBLOCK));
+  EASY_CHECK(fcntl(weakupFds_[0], F_SETFL, O_NONBLOCK /*| O_CLOEXEC*/));
 
-  EASY_CHECK(epoll_ctl(epollFd_, EPOLL_CTL_ADD, tickleFds_[0], &event));
+  EASY_CHECK(epoll_ctl(epollFd_, EPOLL_CTL_ADD, weakupFds_[0], &event));
 
-  contextResize(32);  // avoid allocate memory during run
+  event.data.fd = timerfd();
+
+  EASY_CHECK(fcntl(timerfd(), F_SETFL, O_NONBLOCK /*| O_CLOEXEC*/));
+
+  EASY_CHECK(epoll_ctl(epollFd_, EPOLL_CTL_ADD, timerfd(), &event));
+
+  resizeChannels(32);  // speed up
+  resizeRevent(32);
 
   start();  // Scheduler::start
 }
@@ -92,64 +58,87 @@ IOManager::~IOManager()
   stop();  // Scheduler::stop
 
   close(epollFd_);
-  close(tickleFds_[0]);
-  close(tickleFds_[1]);
+  close(weakupFds_[0]);
+  close(weakupFds_[1]);
 
-  for (size_t i = 0; i < fdContexts_.size(); ++i)
+  for (size_t i = 0; i < channels_.size(); ++i)
   {
-    if (fdContexts_[i])
+    if (channels_[i])
     {
-      delete fdContexts_[i];
+      delete channels_[i];
+    }
+  }
+
+  for (size_t i = 0; i < events_.size(); ++i)
+  {
+    if (events_[i])
+    {
+      delete events_[i];
     }
   }
 }
 
-void IOManager::contextResize(size_t size)
+void IOManager::resizeChannels(size_t size)
 {
-  fdContexts_.resize(size);
+  channels_.resize(size);
 
-  for (size_t i = 0; i < fdContexts_.size(); ++i)
+  for (size_t i = 0; i < channels_.size(); ++i)
   {
-    if (!fdContexts_[i])
+    if (!channels_[i])
     {
-      fdContexts_[i] = new FdContext;
-      fdContexts_[i]->fd_ = static_cast<int>(i);
+      channels_[i] = new Channel;
+      channels_[i]->fd_ = static_cast<int>(i);
     }
   }
 }
 
-int IOManager::addEvent(int fd, Event event, std::function<void()> cb)
+void IOManager::resizeRevent(size_t size)
 {
-  FdContext *fd_ctx = nullptr;
-  ReadLockGuard lock(lock_);
-  if (fdContexts_.size() > static_cast<size_t>(fd))
+  events_.resize(size);
+
+  for (size_t i = 0; i < events_.size(); ++i)
   {
-    fd_ctx = fdContexts_[static_cast<size_t>(fd)];
-    lock.unlock();
+    if (!events_[i])
+    {
+      events_[i] = new epoll_event;
+    }
   }
-  else
+}
+
+int IOManager::addEvent(int fd, Channel::Event event, std::function<void()> cb)
+{
+  Channel *channel = nullptr;
   {
-    lock.unlock();
-    WriteLockGuard l(lock_);
-    contextResize(static_cast<size_t>(fd * 2));
-    fd_ctx = fdContexts_[static_cast<size_t>(fd)];
+    size_t idx = static_cast<size_t>(fd);
+    ReadLockGuard lock(lock_);
+    if (channels_.size() > idx)
+    {
+      channel = channels_[idx];
+      lock.unlock();
+    }
+    else
+    {
+      lock.unlock();
+      WriteLockGuard l(lock_);
+      resizeChannels(idx << 1);  // size * 2
+      channel = channels_[idx];
+    }
   }
 
-  SpinLockGuard l(fd_ctx->lock_);
-  if (EASY_UNLIKELY(fd_ctx->events_ & event))
+  SpinLockGuard l(channel->lock_);
+  if (EASY_UNLIKELY(channel->events_ & event))
   {
     // event already exists
     return -1;
   }
 
-  int op = fd_ctx->events_ ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
+  int op = channel->events_ ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
   epoll_event epevent;
-  epevent.events = EPOLLET | static_cast<EPOLL_EVENTS>(fd_ctx->events_ | event);
-  epevent.data.ptr = fd_ctx;
+  epevent.events =
+      EPOLLET | static_cast<EPOLL_EVENTS>(channel->events_ | event);
+  epevent.data.ptr = channel;
 
-  int ret = epoll_ctl(epollFd_, op, fd, &epevent);
-
-  if (ret)
+  if (epoll_ctl(epollFd_, op, fd, &epevent))
   {
     EASY_LOG_ERROR(logger) << strerror(errno);
     return -1;
@@ -157,144 +146,146 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb)
 
   pendingEventCount_.increment();
 
-  fd_ctx->events_ = static_cast<Event>(fd_ctx->events_ | event);
+  channel->events_ = static_cast<Channel::Event>(channel->events_ | event);
 
-  FdContext::EventContext &event_ctx = fd_ctx->eventContext(event);
+  Channel::EventCtx &ctx = channel->getEventCtx(event);
 
-  EASY_ASSERT(!event_ctx.scheduler_ && !event_ctx.co_ && !event_ctx.cb_);
+  EASY_ASSERT(!ctx.scheduler_ && !ctx.co_ && !ctx.cb_);
 
-  event_ctx.scheduler_ = Scheduler::GetThis();
+  ctx.scheduler_ = Scheduler::GetThis();
   if (cb)
   {
-    event_ctx.cb_.swap(cb);
+    ctx.cb_.swap(cb);
   }
   else
   {
-    event_ctx.co_ = Coroutine::GetThis();
-    EASY_ASSERT_MESSAGE(event_ctx.co_->state() == Coroutine::EXEC,
-                        "state=" << event_ctx.co_->state());
+    ctx.co_ = Coroutine::GetThis();
+    EASY_ASSERT_MESSAGE(ctx.co_->state() == Coroutine::EXEC,
+                        "state=" << ctx.co_->state());
   }
   return 0;
 }
 
-bool IOManager::removeEvent(int fd, Event event)
+bool IOManager::removeEvent(int fd, Channel::Event event)
 {
-  FdContext *fd_ctx = nullptr;
+  Channel *channel = nullptr;
   {
+    size_t idx = static_cast<size_t>(fd);
     ReadLockGuard lock(lock_);
-    if (fdContexts_.size() <= static_cast<size_t>(fd))
+    if (channels_.size() <= idx)
     {
       return false;
     }
-    fd_ctx = fdContexts_[static_cast<size_t>(fd)];
+    channel = channels_[idx];
   }
 
-  SpinLockGuard lock(fd_ctx->lock_);
-  if (EASY_UNLIKELY(!(fd_ctx->events_ & event)))
+  SpinLockGuard lock(channel->lock_);
+  if (EASY_UNLIKELY(!(channel->events_ & event)))
   {
     // already not exists
     return false;
   }
 
-  Event new_events = static_cast<Event>(fd_ctx->events_ & ~event);
-  int op = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+  Channel::Event new_events =
+      static_cast<Channel::Event>(channel->events_ & ~event);
+  int option = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
   epoll_event epevent;
   epevent.events = EPOLLET | static_cast<EPOLL_EVENTS>(new_events);
-  epevent.data.ptr = fd_ctx;
+  epevent.data.ptr = channel;
 
-  int ret = epoll_ctl(epollFd_, op, fd, &epevent);
-  if (ret)
+  if (epoll_ctl(epollFd_, option, fd, &epevent))
   {
     EASY_LOG_ERROR(logger) << strerror(errno);
     return false;
   }
 
   pendingEventCount_.decrement();
-  fd_ctx->events_ = new_events;
-  FdContext::EventContext &event_ctx = fd_ctx->eventContext(event);
-  fd_ctx->resetContext(event_ctx);
+  channel->events_ = new_events;
+  Channel::EventCtx &ctx = channel->getEventCtx(event);
+  channel->cleanUp(ctx);
   return true;
 }
 
-bool IOManager::cancelEvent(int fd, Event event)
+bool IOManager::cancelEvent(int fd, Channel::Event event)
 {
-  FdContext *fd_ctx = nullptr;
+  Channel *channel = nullptr;
   {
+    size_t idx = static_cast<size_t>(fd);
     ReadLockGuard lock(lock_);
-    if (fdContexts_.size() <= static_cast<size_t>(fd))
+    if (channels_.size() <= idx)
     {
       return false;
     }
-    fd_ctx = fdContexts_[static_cast<size_t>(fd)];
+    channel = channels_[idx];
   }
 
-  SpinLockGuard lock(fd_ctx->lock_);
-  if (EASY_UNLIKELY(!(fd_ctx->events_ & event)))
+  SpinLockGuard lock(channel->lock_);
+  if (EASY_UNLIKELY(!(channel->events_ & event)))
   {
     // not exists
     return false;
   }
 
-  Event new_events = static_cast<Event>(fd_ctx->events_ & ~event);
-  int op = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+  Channel::Event new_events =
+      static_cast<Channel::Event>(channel->events_ & ~event);
+  int option = new_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
   epoll_event epevent;
   epevent.events = EPOLLET | static_cast<EPOLL_EVENTS>(new_events);
-  epevent.data.ptr = fd_ctx;
+  epevent.data.ptr = channel;
 
-  int ret = epoll_ctl(epollFd_, op, fd, &epevent);
-  if (ret)
+  if (epoll_ctl(epollFd_, option, fd, &epevent))
   {
     EASY_LOG_ERROR(logger) << strerror(errno);
     return false;
   }
 
-  fd_ctx->triggerEvent(event);
+  channel->handleEvent(event);
   pendingEventCount_.decrement();
   return true;
 }
 
 bool IOManager::cancelAll(int fd)
 {
-  FdContext *fd_ctx = nullptr;
+  Channel *channel = nullptr;
   {
+    size_t idx = static_cast<size_t>(fd);
     ReadLockGuard lock(lock_);
-    if (fdContexts_.size() <= static_cast<size_t>(fd))
+    if (channels_.size() <= idx)
     {
       return false;
     }
-    fd_ctx = fdContexts_[static_cast<size_t>(fd)];
+    channel = channels_[idx];
     lock.unlock();
   }
 
-  SpinLockGuard lock(fd_ctx->lock_);
-  if (!fd_ctx->events_)
+  SpinLockGuard lock(channel->lock_);
+  if (!channel->events_)
   {
     return false;
   }
 
-  int op = EPOLL_CTL_DEL;
+  int option = EPOLL_CTL_DEL;
   epoll_event epevent;
   epevent.events = 0;
-  epevent.data.ptr = fd_ctx;
+  epevent.data.ptr = channel;
 
-  int ret = epoll_ctl(epollFd_, op, fd, &epevent);
-  if (ret)
+  if (epoll_ctl(epollFd_, option, fd, &epevent))
   {
     EASY_LOG_ERROR(logger) << strerror(errno);
     return false;
   }
 
-  if (fd_ctx->events_ & READ)
+  if (channel->events_ & Channel::READ)
   {
-    fd_ctx->triggerEvent(READ);
+    channel->handleEvent(Channel::READ);
     pendingEventCount_.decrement();
   }
-  if (fd_ctx->events_ & WRITE)
+  if (channel->events_ & Channel::WRITE)
   {
-    fd_ctx->triggerEvent(WRITE);
+    channel->handleEvent(Channel::WRITE);
     pendingEventCount_.decrement();
   }
-  EASY_ASSERT(fd_ctx->events_ == 0);
+  EASY_ASSERT(channel->events_ == 0);
   return true;
 }
 
@@ -303,125 +294,124 @@ IOManager *IOManager::GetThis()
   return dynamic_cast<IOManager *>(Scheduler::GetThis());
 }
 
-void IOManager::tickle()
+void IOManager::weakup()
 {
   if (!hasIdleThread())
   {
     return;
   }
-  ssize_t ret = write(tickleFds_[1], "T", 1UL);
+  char msg = 'X';
+  ssize_t ret = write(weakupFds_[1], &msg, sizeof(msg));
   EASY_ASSERT(ret == 1);
-}
-
-bool IOManager::stopping(int64_t &timeout)
-{
-  timeout = getNextTimer();
-  return timeout == ~0 && pendingEventCount_.get() == 0 && Scheduler::canStop();
 }
 
 bool IOManager::canStop()
 {
-  int64_t timeout = 0;
-  return stopping(timeout);
+  return !hasTimer() && pendingEventCount_.get() == 0 && Scheduler::canStop();
 }
 
 void IOManager::idle()
 {
-  const uint64_t MAX_EVENTS = 256;
-  epoll_event *events = new epoll_event[MAX_EVENTS]();
-  std::shared_ptr<epoll_event> shared_events(
-      events, [](epoll_event *ptr) { delete[] ptr; });
-
-  while (true)
+  while (EASY_UNLIKELY(!canStop()))
   {
-    int64_t next_timeout = 0;
-    if (EASY_UNLIKELY(stopping(next_timeout)))
+    int numEvents = 0;
+    while (true)
     {
-      break;
-    }
-
-    int eventNums = 0;
-    do
-    {
-      static const int MAX_TIMEOUT = 3000;
-      next_timeout = (next_timeout > MAX_TIMEOUT || next_timeout < 0)
-                         ? MAX_TIMEOUT
-                         : next_timeout;
-
-      eventNums = epoll_wait(epollFd_, events, MAX_EVENTS,
-                             static_cast<int>(next_timeout));
-      if (eventNums < 0 && errno == EINTR)
+      numEvents = epoll_wait(epollFd_, *events_.begin(),
+                             static_cast<int>(events_.size()), kEPollTimeMs);
+      int savedErrno = errno;
+      if (numEvents > 0)
       {
+        EASY_LOG_DEBUG(logger) << numEvents << " events happened";
+        if (static_cast<size_t>(numEvents) == events_.size())
+        {
+          resizeRevent(events_.size() << 1);
+        }
+        break;
+      }
+      else if (numEvents == 0)
+      {
+        EASY_LOG_DEBUG(logger) << "nothing happened";
       }
       else
       {
-        // event reach
-        break;
+        if (savedErrno != EINTR)
+        {
+          errno = savedErrno;
+          EASY_LOG_ERROR(logger) << "epoll_wait error";
+        }
       }
-    } while (true);
+    };
 
-    std::vector<std::function<void()>> cbs;
-    listExpiredCallback(cbs);
-    if (!cbs.empty())
+    for (int i = 0; i < numEvents; ++i)
     {
-      schedule(cbs.begin(), cbs.end());
-    }
-
-    for (int i = 0; i < eventNums; ++i)
-    {
-      epoll_event &event = events[i];
-      if (event.data.fd == tickleFds_[0])
+      epoll_event *event = events_[static_cast<size_t>(i)];
+      if (event->data.fd == weakupFds_[0])
       {
         uint8_t dummy[256];
         // EPOLLET
-        while (read(tickleFds_[0], dummy, sizeof(dummy)) > 0)
+        while (read(weakupFds_[0], dummy, sizeof(dummy)) > 0)
           ;
         continue;
       }
 
-      FdContext *fd_ctx = static_cast<FdContext *>(event.data.ptr);
-      SpinLockGuard lock(fd_ctx->lock_);
-      if (event.events & (EPOLLERR | EPOLLHUP))
+      if (event->data.fd == timerfd())
       {
-        event.events |= (EPOLLIN | EPOLLOUT) & fd_ctx->events_;
-      }
-      int real_events = NONE;
-      if (event.events & EPOLLIN)
-      {
-        real_events |= READ;
-      }
-      if (event.events & EPOLLOUT)
-      {
-        real_events |= WRITE;
+        uint8_t dummy[256];
+        // EPOLLET
+        while (read(timerfd(), dummy, sizeof(dummy)) > 0)
+          ;
+        std::vector<std::function<void()>> cbs;
+        listExpiredCallback(cbs);
+        if (!cbs.empty())
+        {
+          schedule(cbs.begin(), cbs.end());
+        }
+        continue;
       }
 
-      if ((fd_ctx->events_ & real_events) == NONE)
+      Channel *channel = static_cast<Channel *>(event->data.ptr);
+      SpinLockGuard lock(channel->lock_);
+      if (event->events & (EPOLLERR | EPOLLHUP))
+      {
+        event->events |= (EPOLLIN | EPOLLOUT) & channel->events_;
+      }
+      int revents = Channel::NONE;
+      if (event->events & EPOLLIN)
+      {
+        revents |= Channel::READ;
+      }
+      if (event->events & EPOLLOUT)
+      {
+        revents |= Channel::WRITE;
+      }
+
+      if ((channel->events_ & revents) == Channel::NONE)
       {
         // do nothing
         continue;
       }
 
       // TODO: use EPOLLONESHOT
-      uint32_t left_events = (fd_ctx->events_ & ~real_events);
-      int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
-      event.events = EPOLLET | left_events;
+      uint32_t levents = (channel->events_ & ~revents);
+      int op = levents ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+      event->events = EPOLLET | levents;
 
-      int ret = epoll_ctl(epollFd_, op, fd_ctx->fd_, &event);
-      if (ret)
+      if (epoll_ctl(epollFd_, op, channel->fd_, event))
       {
         EASY_LOG_ERROR(logger)
             << " (" << errno << ") (" << strerror(errno) << ")";
         continue;
       }
 
-      if (real_events & READ)
+      if (revents & Channel::READ)
       {
-        fd_ctx->triggerEvent(READ);
+        channel->handleEvent(Channel::READ);
         pendingEventCount_.decrement();
       }
-      if (real_events & WRITE)
+      if (revents & Channel::WRITE)
       {
-        fd_ctx->triggerEvent(WRITE);
+        channel->handleEvent(Channel::WRITE);
         pendingEventCount_.decrement();
       }
     }
@@ -431,12 +421,6 @@ void IOManager::idle()
     // back at scheduler::handleCoroutine co->sched_rsume()
     raw_ptr->sched_yield();
   }
-}
-
-void IOManager::onTimerInsertedAtFront()
-{
-  // should update epoll timeout
-  tickle();
 }
 
 }  // namespace easy

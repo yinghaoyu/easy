@@ -1,10 +1,10 @@
-#include <thread>
-#include <vector>
-
 #include "easy/base/Logger.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/Thread.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
+
+#include <thread>
+#include <vector>
 
 static easy::Logger::ptr logger = EASY_LOG_NAME("system");
 

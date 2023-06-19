@@ -1,6 +1,6 @@
 #include "easy/base/Logger.h"
 #include "easy/base/Scheduler.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 
 static easy::Logger::ptr logger = EASY_LOG_ROOT();
 

@@ -45,6 +45,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 add_subdirectory(easy/base)
 add_subdirectory(easy/net)
+add_subdirectory(examples)
 add_subdirectory(tests)
 
 #string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE) # 将CMAKE_BUILD_TYPE变量字符转为大写

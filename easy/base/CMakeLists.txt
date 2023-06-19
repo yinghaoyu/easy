@@ -17,6 +17,8 @@ set(base_SRCS
   Env.cc
   hook.cc
   FdManager.cc
+  HashUtil.cc
+  Channel.cc
   )
 
 add_library(easy_base ${base_SRCS})

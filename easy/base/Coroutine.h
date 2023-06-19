@@ -76,11 +76,11 @@ class Coroutine : noncopyable, public std::enable_shared_from_this<Coroutine>
   static void MainFunc();
 
  private:
-  uint64_t id_ = 0;
-  size_t stacksize_ = 0;
-  State state_ = State::INIT;
+  uint64_t id_{0};
+  size_t stacksize_{0};
+  State state_{State::INIT};
   ucontext_t ctx_;
-  void *stack_ = nullptr;
+  void *stack_{nullptr};
   std::function<void()> cb_;
 };
 

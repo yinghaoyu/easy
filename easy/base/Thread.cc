@@ -1,6 +1,6 @@
 #include "easy/base/Thread.h"
 #include "easy/base/Atomic.h"
-#include "easy/base/easy_define.h"
+#include "easy/base/Macro.h"
 
 #include <sys/syscall.h>
 #include <sys/types.h>
