@@ -24,3 +24,6 @@ target_link_libraries(test_hook easy_base)
 
 add_executable(test_address test_address.cc)
 target_link_libraries(test_address easy_net easy_base)
+
+add_executable(test_socket test_socket.cc)
+target_link_libraries(test_socket easy_net easy_base)

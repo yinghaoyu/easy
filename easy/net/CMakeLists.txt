@@ -1,5 +1,6 @@
 set(net_SRCS
   Address.cc
+  Socket.cc
   )
 
 add_library(easy_net ${net_SRCS})

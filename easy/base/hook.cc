@@ -9,10 +9,10 @@
 #include <asm-generic/errno.h>
 #include <asm-generic/socket.h>
 #include <dlfcn.h>
+#include <stdarg.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <cstdint>
-#include <stdarg.h>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -276,8 +276,8 @@ extern "C"
     {
       struct timeval tv
       {
-        .tv_sec = static_cast<long>(timeout_ms / 1000),
-        .tv_usec = static_cast<long>(timeout_ms % 1000 * 1000)
+        .tv_sec = static_cast<long int>(timeout_ms / 1000),
+        .tv_usec = static_cast<long int>(timeout_ms % 1000 * 1000)
       };
       setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
       return connect_f(fd, addr, addrlen);
@@ -382,7 +382,7 @@ extern "C"
   int accept(int s, struct sockaddr *addr, socklen_t *addrlen)
   {
     ssize_t n = do_io(s, accept_f, "accept", easy::IOManager::READ, SO_RCVTIMEO,
-                   addr, addrlen);
+                      addr, addrlen);
     int fd = static_cast<int>(n);
     if (fd >= 0)
     {

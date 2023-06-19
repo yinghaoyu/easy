@@ -21,3 +21,5 @@
 10. 线程在 `epoll_wait` 会阻塞，可以利用 `pipe`、`eventfd`、`timefd`、`socket` 等唤醒线程。
 
 11. `gdb` 捕捉不了 `lambda` 表达式内的断点。
+
+12. `&`、`|`、`~`等操作，`gcc`会默认把操作数转成`int`。

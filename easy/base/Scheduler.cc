@@ -61,13 +61,13 @@ Scheduler::~Scheduler()
   }
 }
 
-bool Scheduler::canStop() // virtual
+bool Scheduler::canStop()  // virtual
 {
   ReadLockGuard lock(lock_);
   return !running_ && tasks_.empty() && activeThreadNums_.get() == 0;
 }
 
-void Scheduler::tickle() // virtual
+void Scheduler::tickle()  // virtual
 {
 }
 
@@ -104,8 +104,7 @@ void Scheduler::start()
 void Scheduler::stop()
 {
   if (callerCo_ && threadNums_ == 0 &&
-      (callerCo_->finish() ||
-       callerCo_->state() == Coroutine::INIT))
+      (callerCo_->finish() || callerCo_->state() == Coroutine::INIT))
   {
     // only one use_caller thread
     running_ = false;
