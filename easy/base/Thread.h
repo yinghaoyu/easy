@@ -7,16 +7,15 @@
 #include <pthread.h>
 #include <functional>
 #include <memory>
+#include <string>
 
-namespace easy
-{
+namespace easy {
 
-class Thread : noncopyable
-{
+class Thread : noncopyable {
  public:
   typedef std::shared_ptr<Thread> ptr;
 
-  Thread(std::function<void()> cb, const std::string &name = "");
+  Thread(std::function<void()> cb, const std::string& name = "");
 
   ~Thread();
 
@@ -24,16 +23,16 @@ class Thread : noncopyable
 
   pid_t id() const { return id_; }
 
-  const std::string &name() const { return name_; }
+  const std::string& name() const { return name_; }
 
   static int GetCurrentThreadId();
 
-  static const char *GetCurrentThreadName();
+  static const char* GetCurrentThreadName();
 
-  static void SetCurrentThreadName(const std::string &name);
+  static void SetCurrentThreadName(const std::string& name);
 
  private:
-  static void *run(void *arg);
+  static void* run(void* arg);
 
   void setDefaultName();
 

@@ -3,13 +3,10 @@
 
 #include <string>
 
-namespace easy
-{
-class LogLevel
-{
+namespace easy {
+class LogLevel {
  public:
-  enum Level
-  {
+  enum Level {
     off,
     trace,
     debug,
@@ -19,9 +16,9 @@ class LogLevel
     fatal,
   };
 
-  static const char *toString(LogLevel::Level level);
+  static const char* toString(LogLevel::Level level);
 
-  static LogLevel::Level fromString(const std::string &str);
+  static LogLevel::Level fromString(const std::string& str);
 };
 }  // namespace easy
 

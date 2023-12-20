@@ -4,7 +4,7 @@ set(base_SRCS
   LogEvent.cc
   LogFormatter.cc
   Logger.cc
-  Coroutine.cc
+  Fiber.cc
   Thread.cc
   Mutex.cc
   Scheduler.cc

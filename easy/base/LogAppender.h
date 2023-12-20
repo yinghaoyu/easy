@@ -8,15 +8,13 @@
 #include <fstream>
 #include <memory>
 
-namespace easy
-{
+namespace easy {
 class Logger;
 class LogEvent;
 class LogFormatter;
 
 // 抽象类
-class LogAppender
-{
+class LogAppender {
   friend class Logger;
 
  public:
@@ -25,8 +23,7 @@ class LogAppender
   LogAppender() = default;
   virtual ~LogAppender() = default;
 
-  virtual void log(std::shared_ptr<Logger> logger,
-                   LogLevel::Level level,
+  virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level,
                    std::shared_ptr<LogEvent> event) = 0;
 
   virtual std::string toYamlString() = 0;
@@ -51,28 +48,24 @@ class LogAppender
 };
 
 // 输出到控制台
-class ConsoleLogAppender : public LogAppender
-{
+class ConsoleLogAppender : public LogAppender {
  public:
   typedef std::shared_ptr<ConsoleLogAppender> ptr;
 
-  void log(std::shared_ptr<Logger> logger,
-           LogLevel::Level level,
+  void log(std::shared_ptr<Logger> logger, LogLevel::Level level,
            std::shared_ptr<LogEvent> event) override;
 
   std::string toYamlString() override;
 };
 
 // 输出到文件
-class FileLogAppender : public LogAppender
-{
+class FileLogAppender : public LogAppender {
  public:
   typedef std::shared_ptr<FileLogAppender> ptr;
 
-  FileLogAppender(const std::string &filename);
+  FileLogAppender(const std::string& filename);
 
-  void log(std::shared_ptr<Logger> logger,
-           LogLevel::Level level,
+  void log(std::shared_ptr<Logger> logger, LogLevel::Level level,
            std::shared_ptr<LogEvent> event) override;
 
   std::string toYamlString() override;

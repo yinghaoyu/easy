@@ -8,11 +8,9 @@
 #include <memory>
 #include <vector>
 
-namespace easy
-{
+namespace easy {
 
-class FdCtx : noncopyable, public std::enable_shared_from_this<FdCtx>
-{
+class FdCtx : noncopyable, public std::enable_shared_from_this<FdCtx> {
  public:
   typedef std::shared_ptr<FdCtx> ptr;
 
@@ -51,8 +49,7 @@ class FdCtx : noncopyable, public std::enable_shared_from_this<FdCtx>
   uint64_t sendTimeout_;
 };
 
-class FdManager : noncopyable
-{
+class FdManager : noncopyable {
  public:
   FdManager();
   FdCtx::ptr getFdCtx(int fd, bool autoCreate = false);

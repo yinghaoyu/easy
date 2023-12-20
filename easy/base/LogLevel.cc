@@ -1,11 +1,8 @@
 #include "easy/base/LogLevel.h"
 
-namespace easy
-{
-const char *LogLevel::toString(LogLevel::Level level)
-{
-  switch (level)
-  {
+namespace easy {
+const char* LogLevel::toString(LogLevel::Level level) {
+  switch (level) {
 #define XX(name)       \
   case LogLevel::name: \
     return #name;      \
@@ -18,17 +15,15 @@ const char *LogLevel::toString(LogLevel::Level level)
     XX(error);
     XX(fatal);
 #undef XX
-  default:
-    return "off";
+    default:
+      return "off";
   }
   return "off";
 }
 
-LogLevel::Level LogLevel::fromString(const std::string &str)
-{
+LogLevel::Level LogLevel::fromString(const std::string& str) {
 #define XX(level, v)        \
-  if (str == #v)            \
-  {                         \
+  if (str == #v) {          \
     return LogLevel::level; \
   }
 

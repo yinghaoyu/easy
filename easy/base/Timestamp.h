@@ -6,19 +6,15 @@
 #include <cstdint>
 #include <string>
 
-namespace easy
-{
-class Timestamp : public copyable
-{
+namespace easy {
+class Timestamp : public copyable {
  public:
   Timestamp() : microSecondsSinceEpoch_(0) {}
 
   explicit Timestamp(int64_t msc) : microSecondsSinceEpoch_(msc) {}
 
-  Timestamp(const Timestamp &other)
-      : microSecondsSinceEpoch_(other.microSecondsSinceEpoch_)
-  {
-  }
+  Timestamp(const Timestamp& other)
+      : microSecondsSinceEpoch_(other.microSecondsSinceEpoch_) {}
 
   ~Timestamp() {}
 
@@ -26,36 +22,30 @@ class Timestamp : public copyable
 
   int64_t microSecondsSinceEpoch() const { return microSecondsSinceEpoch_; }
 
-  std::string toString(const std::string &format = "%Y-%m-%d %H:%M:%S") const;
+  std::string toString(const std::string& format = "%Y-%m-%d %H:%M:%S") const;
 
-  void operator=(const Timestamp &other)
-  {
+  void operator=(const Timestamp& other) {
     microSecondsSinceEpoch_ = other.microSecondsSinceEpoch_;
   }
 
-  bool operator==(const Timestamp &other) const
-  {
+  bool operator==(const Timestamp& other) const {
     return microSecondsSinceEpoch_ == other.microSecondsSinceEpoch_;
   }
 
-  bool operator<(const Timestamp &other) const
-  {
+  bool operator<(const Timestamp& other) const {
     return microSecondsSinceEpoch_ < other.microSecondsSinceEpoch_;
   }
 
-  bool operator>(const Timestamp &other) const
-  {
+  bool operator>(const Timestamp& other) const {
     return microSecondsSinceEpoch_ > other.microSecondsSinceEpoch_;
   }
 
-  bool operator>=(const Timestamp &other)
-  {
+  bool operator>=(const Timestamp& other) {
     return microSecondsSinceEpoch_ > other.microSecondsSinceEpoch_ ||
            microSecondsSinceEpoch_ == other.microSecondsSinceEpoch_;
   }
 
-  bool operator<=(const Timestamp &other)
-  {
+  bool operator<=(const Timestamp& other) {
     return microSecondsSinceEpoch_ < other.microSecondsSinceEpoch_ ||
            microSecondsSinceEpoch_ == other.microSecondsSinceEpoch_;
   }
@@ -70,14 +60,12 @@ class Timestamp : public copyable
   int64_t microSecondsSinceEpoch_;
 };
 
-inline int64_t timeDifference(Timestamp high, Timestamp low)
-{
+inline int64_t timeDifference(Timestamp high, Timestamp low) {
   int64_t diff = high.microSecondsSinceEpoch() - low.microSecondsSinceEpoch();
   return diff / Timestamp::kMillisecondPerSeond;
 }
 
-inline Timestamp addTime(Timestamp timestamp, int64_t ms)
-{
+inline Timestamp addTime(Timestamp timestamp, int64_t ms) {
   int64_t delta = static_cast<int64_t>(ms * Timestamp::kMillisecondPerSeond);
   return Timestamp(timestamp.microSecondsSinceEpoch() + delta);
 }

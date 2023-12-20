@@ -1,10 +1,13 @@
-PointerAlignment: Left
-BreakBeforeBraces: Allman
-IndentWidth: 2
-TabWidth: 2
-BasedOnStyle: Chromium
-ColumnLimit: 80
+---
+Language: Cpp
+BasedOnStyle: Google
 DerivePointerAlignment: false
-IndentCaseLabels: false
-PointerAlignment: Right
-SpaceAfterCStyleCast: true
+PointerAlignment: Left
+IncludeBlocks: Preserve
+---
+Language: Proto
+DisableFormat: true
+---
+Language: JavaScript
+DisableFormat: true
+---

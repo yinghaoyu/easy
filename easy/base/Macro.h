@@ -15,8 +15,7 @@
 #endif
 
 #define EASY_ASSERT(x)                              \
-  if (EASY_UNLIKELY(!(x)))                          \
-  {                                                 \
+  if (EASY_UNLIKELY(!(x))) {                        \
     EASY_LOG_ERROR(EASY_LOG_ROOT())                 \
         << "assertion: " #x << "\nbacktrace:\n"     \
         << easy::BacktraceToString(100, 2, "    "); \
@@ -24,8 +23,7 @@
   }
 
 #define EASY_ASSERT_MESSAGE(x, w)                   \
-  if (EASY_UNLIKELY(!(x)))                          \
-  {                                                 \
+  if (EASY_UNLIKELY(!(x))) {                        \
     EASY_LOG_ERROR(EASY_LOG_ROOT())                 \
         << "assertion: " #x << "\n"                 \
         << w << "\nbacktrace:\n"                    \
@@ -33,10 +31,9 @@
     abort();                                        \
   }
 
-#define EASY_CHECK(x)   \
-  if (EASY_UNLIKELY(x)) \
-  {                     \
-    assert(x);          \
+#define EASY_CHECK(x)     \
+  if (EASY_UNLIKELY(x)) { \
+    assert(x);            \
   }
 
 #endif

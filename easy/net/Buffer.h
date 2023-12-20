@@ -7,29 +7,26 @@
 #include <string>
 #include <vector>
 
-namespace easy
-{
-class Buffer
-{
+namespace easy {
+class Buffer {
  public:
   typedef std::shared_ptr<Buffer> ptr;
 
-  struct Node
-  {
+  struct Node {
     Node(size_t s);
     Node();
     ~Node();
 
     void free();
 
-    char *ptr_;
-    Node *next_;
+    char* ptr_;
+    Node* next_;
     size_t size_;
   };
 
   Buffer(size_t base_size = 4096);
 
-  Buffer(void *data, size_t size, bool owner = false);
+  Buffer(void* data, size_t size, bool owner = false);
 
   ~Buffer();
 
@@ -51,15 +48,15 @@ class Buffer
   void writeFloat(float value);
   void writeDouble(double value);
   // length:int16 , data
-  void writeStringF16(const std::string &value);
+  void writeStringF16(const std::string& value);
   // length:int32 , data
-  void writeStringF32(const std::string &value);
+  void writeStringF32(const std::string& value);
   // length:int64 , data
-  void writeStringF64(const std::string &value);
+  void writeStringF64(const std::string& value);
   // length:varint, data
-  void writeStringVint(const std::string &value);
+  void writeStringVint(const std::string& value);
   // data
-  void writeStringWithoutLength(const std::string &value);
+  void writeStringWithoutLength(const std::string& value);
 
   // read
   int8_t readFint8();
@@ -90,15 +87,15 @@ class Buffer
 
   void clear();
 
-  void write(const void *buf, size_t size);
-  void read(void *buf, size_t size);
-  void read(void *buf, size_t size, size_t position) const;
+  void write(const void* buf, size_t size);
+  void read(void* buf, size_t size);
+  void read(void* buf, size_t size, size_t position) const;
 
   size_t position() const { return position_; }
   void setPosition(size_t v);
 
-  bool writeToFile(const std::string &name, bool with_md5 = false) const;
-  bool readFromFile(const std::string &name);
+  bool writeToFile(const std::string& name, bool with_md5 = false) const;
+  bool readFromFile(const std::string& name);
 
   size_t baseSize() const { return baseSize_; }
   size_t readSize() const { return size_ - position_; }
@@ -110,13 +107,12 @@ class Buffer
   std::string toHexString() const;
 
   // 只获取内容，不修改position
-  uint64_t getReadBuffers(std::vector<iovec> &buffers,
+  uint64_t getReadBuffers(std::vector<iovec>& buffers,
                           uint64_t len = ~0ull) const;
-  uint64_t getReadBuffers(std::vector<iovec> &buffers,
-                          uint64_t len,
+  uint64_t getReadBuffers(std::vector<iovec>& buffers, uint64_t len,
                           uint64_t position) const;
   // 增加容量，不修改position
-  uint64_t getWriteBuffers(std::vector<iovec> &buffers, uint64_t len);
+  uint64_t getWriteBuffers(std::vector<iovec>& buffers, uint64_t len);
 
   size_t size() const { return size_; }
 
@@ -133,8 +129,8 @@ class Buffer
   size_t size_;
   int8_t endian_;  // 1小端 2大端
   bool owner_;
-  Node *root_;
-  Node *cur_;
+  Node* root_;
+  Node* cur_;
 };
 }  // namespace easy
 

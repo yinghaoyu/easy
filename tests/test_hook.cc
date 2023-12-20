@@ -12,27 +12,21 @@
 
 static easy::Logger::ptr g_logger = EASY_LOG_ROOT();
 
-void test_sleep()
-{
+void test_sleep() {
   easy::IOManager iom(1);
-  iom.schedule(
-      []()
-      {
-        sleep(2);
-        EASY_LOG_INFO(g_logger) << "sleep 2";
-      });
+  iom.schedule([]() {
+    sleep(2);
+    EASY_LOG_INFO(g_logger) << "sleep 2";
+  });
 
-  iom.schedule(
-      []()
-      {
-        sleep(3);
-        EASY_LOG_INFO(g_logger) << "sleep 3";
-      });
+  iom.schedule([]() {
+    sleep(3);
+    EASY_LOG_INFO(g_logger) << "sleep 3";
+  });
   EASY_LOG_INFO(g_logger) << "test_sleep";
 }
 
-void test_sock()
-{
+void test_sock() {
   int sock = socket(AF_INET, SOCK_STREAM, 0);
 
   sockaddr_in addr;
@@ -43,11 +37,10 @@ void test_sock()
 
   EASY_LOG_INFO(g_logger) << "begin connect";
   int ret =
-      connect(sock, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr));
+      connect(sock, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
   EASY_LOG_INFO(g_logger) << "connect rt=" << ret << " errno=" << errno;
 
-  if (ret)
-  {
+  if (ret) {
     return;
   }
 
@@ -56,8 +49,7 @@ void test_sock()
   EASY_LOG_INFO(g_logger) << "send rt=" << ret << " errno=" << errno
                           << " strerr=" << strerror(errno);
 
-  if (ret <= 0)
-  {
+  if (ret <= 0) {
     return;
   }
 
@@ -67,8 +59,7 @@ void test_sock()
   ret = static_cast<int>(recv(sock, &buff[0], buff.size(), 0));
   EASY_LOG_INFO(g_logger) << "recv rt=" << ret << " errno=" << errno;
 
-  if (ret <= 0)
-  {
+  if (ret <= 0) {
     return;
   }
 
@@ -76,8 +67,7 @@ void test_sock()
   EASY_LOG_INFO(g_logger) << buff;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   test_sleep();
   easy::IOManager iom;
   iom.schedule(test_sock);

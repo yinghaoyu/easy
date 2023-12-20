@@ -7,62 +7,49 @@
 #include <memory>
 #include <sstream>
 
-namespace easy
-{
+namespace easy {
 class Logger;
 
 // 日志事件
-class LogEvent
-{
+class LogEvent {
  public:
   typedef std::shared_ptr<LogEvent> ptr;
 
-  explicit LogEvent(std::shared_ptr<Logger> logger,
-                    LogLevel::Level level,
-                    const char *file,
-                    int32_t line,
-                    uint32_t elapse,
-                    uint32_t thread_id,
-                    uint32_t coroutine_id,
-                    Timestamp time,
-                    const std::string &thread_name);
+  explicit LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level,
+                    const char* file, int32_t line, uint32_t elapse,
+                    uint32_t thread_id, uint32_t coroutine_id, Timestamp time,
+                    const std::string& thread_name);
 
   ~LogEvent() = default;
 
-  const char *fileName() const { return fileName_; }
+  const char* fileName() const { return fileName_; }
   int32_t line() const { return line_; }
   uint32_t elapse() const { return elapse_; }
   uint32_t threadId() const { return threadId_; }
   uint32_t coroutineId() const { return coroutineId_; }
   Timestamp timestamp() const { return timestamp_; }
-  const std::string &threadName() const { return threadName_; }
+  const std::string& threadName() const { return threadName_; }
   std::string content() const { return contentSS_.str(); }
   std::shared_ptr<Logger> logger() const { return logger_; }
   LogLevel::Level level() const { return level_; }
 
-  std::stringstream &contentSS() { return contentSS_; }
-  void format(const char *fmt, ...);
-  void format(const char *fmt, va_list al);
+  std::stringstream& contentSS() { return contentSS_; }
+  void format(const char* fmt, ...);
+  void format(const char* fmt, va_list al);
 
  private:
-  inline const char *slash_walk(const char *str, const char *last_slash)
-  {
-    if (*str == '\0')
-    {
+  inline const char* slash_walk(const char* str, const char* last_slash) {
+    if (*str == '\0') {
       return last_slash;
-    }
-    else if (*str == '/')
-    {
+    } else if (*str == '/') {
       return slash_walk(str + 1, str + 1);
-    }
-    else
-    {
+    } else {
       return slash_walk(str + 1, last_slash);
     }
   }
 
  private:
-  const char *fileName_ = nullptr;  // 文件名
+  const char* fileName_ = nullptr;  // 文件名
   int32_t line_ = 0;                // 行号
   uint32_t elapse_ = 0;             // 程序启动开始到现在的毫秒数
   uint32_t threadId_ = 0;           // 线程id
@@ -74,13 +61,12 @@ class LogEvent
   LogLevel::Level level_;
 };
 
-class LogEventRAII
-{
+class LogEventRAII {
  public:
   LogEventRAII(LogEvent::ptr e);
   ~LogEventRAII();
   LogEvent::ptr event() const { return event_; }
-  std::stringstream &getSS();
+  std::stringstream& getSS();
 
  private:
   LogEvent::ptr event_;

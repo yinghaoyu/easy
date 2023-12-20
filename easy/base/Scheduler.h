@@ -2,7 +2,7 @@
 #define __EASY_SCHEDULER_H__
 
 #include "easy/base/Atomic.h"
-#include "easy/base/Coroutine.h"
+#include "easy/base/Fiber.h"
 #include "easy/base/Mutex.h"
 #include "easy/base/Thread.h"
 #include "easy/base/noncopyable.h"
@@ -13,21 +13,18 @@
 #include <string>
 #include <vector>
 
-namespace easy
-{
+namespace easy {
 // N-M asymmetic Scheduler
-class Scheduler : noncopyable
-{
-  friend class Coroutine;
+class Scheduler : noncopyable {
+  friend class Fiber;
 
  public:
-  Scheduler(int threadNums = 1,
-            bool use_caller = true,
-            const std::string &name = "");
+  Scheduler(int threadNums = 1, bool use_caller = true,
+            const std::string& name = "");
 
   virtual ~Scheduler();
 
-  const std::string &name() const { return name_; }
+  const std::string& name() const { return name_; }
 
   void start();
 
@@ -40,91 +37,78 @@ class Scheduler : noncopyable
   void run();
 
   template <typename T>
-  void schedule(T co, int threadId = -1)
-  {
+  void schedule(T co, int threadId = -1) {
     bool should_weakup = false;
     {
       WriteLockGuard lock(lock_);
       should_weakup = scheduleNonBlock(co, threadId);
     }
-    if (should_weakup)
-    {
+    if (should_weakup) {
       weakup();
     }
   }
 
   template <typename TaskIterator>
-  void schedule(TaskIterator begin, TaskIterator end)
-  {
+  void schedule(TaskIterator begin, TaskIterator end) {
     bool need_weakup = false;
     {
       WriteLockGuard lock(lock_);
-      while (begin != end)
-      {
+      while (begin != end) {
         need_weakup = scheduleNonBlock(*begin) || need_weakup;
         ++begin;
       }
     }
-    if (need_weakup)
-    {
+    if (need_weakup) {
       weakup();
     }
   }
 
-  static Scheduler *GetThis();
+  static Scheduler* GetThis();
 
-  static Coroutine *GetSchedulerCoroutine();
+  static Fiber* GetSchedulerFiber();
 
  private:
   virtual void weakup();
 
-  void handleCoroutine(Coroutine::ptr& co);
+  void handleFiber(Fiber::ptr& fiber);
 
   virtual void idle();
 
   template <typename T>
-  bool scheduleNonBlock(T &&co, long thread_id = -1)
-  {
+  bool scheduleNonBlock(T&& fiber, long thread_id = -1) {
     bool should_weakup = tasks_.empty();
-    auto task = std::make_shared<Task>(std::forward<T>(co), thread_id);
-    if (task->co_ || task->cb_)
-    {
+    auto task = std::make_shared<Task>(std::forward<T>(fiber), thread_id);
+    if (task->fiber_ || task->cb_) {
       tasks_.push_back(std::move(task));
     }
     return should_weakup;
   }
 
  private:
-  struct Task
-  {
+  struct Task {
     typedef std::shared_ptr<Task> ptr;
     Task() {}
 
-    Task(const Task &rhs) = default;
+    Task(const Task& rhs) = default;
 
-    Task(Coroutine::ptr co, int threadId) : co_(co), threadId_(threadId) {}
+    Task(Fiber::ptr fiber, int threadId) : fiber_(fiber), threadId_(threadId) {}
 
-    Task(const std::function<void()> &cb, int threadId)
-        : cb_(cb), threadId_(threadId)
-    {
-    }
+    Task(const std::function<void()>& cb, int threadId)
+        : cb_(cb), threadId_(threadId) {}
 
-    Task(const std::function<void()> &&cb,
+    Task(const std::function<void()>&& cb,
          int threadId) noexcept  // noexcept for std::move
-        : cb_(std::move(cb)), threadId_(threadId)
-    {
-    }
+        : cb_(std::move(cb)), threadId_(threadId) {}
 
-    Task &operator=(const Task &other) = default;
+    Task& operator=(const Task& other) = default;
 
-    void reset()
-    {
-      co_ = nullptr;
+    void reset() {
+      fiber_ = nullptr;
       cb_ = nullptr;
       threadId_ = -1;
     }
 
-    Coroutine::ptr co_;
+    Fiber::ptr fiber_;
     std::function<void()> cb_;
     int threadId_{-1};  // -1 could be scheduled by any thread
   };
@@ -144,7 +128,7 @@ class Scheduler : noncopyable
   RWLock lock_;
   std::vector<Thread::ptr> threads_;  // 线程对象列表
   std::list<Task::ptr> tasks_;        // 任务集合
-  Coroutine::ptr callerCo_;           // use_caller only
+  Fiber::ptr callerFiber_;            // use_caller only
 };
 
 }  // namespace easy

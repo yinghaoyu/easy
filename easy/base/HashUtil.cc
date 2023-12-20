@@ -2,9 +2,8 @@
 
 #include <openssl/md5.h>
 
-namespace easy
-{
-  std::string md5sum(const std::vector<iovec>& data) {
+namespace easy {
+std::string md5sum(const std::vector<iovec>& data) {
   MD5_CTX ctx;
   MD5_Init(&ctx);
   for (auto& i : data) {
@@ -12,7 +11,7 @@ namespace easy
   }
   std::string result;
   result.resize(MD5_DIGEST_LENGTH);
-  MD5_Final(reinterpret_cast<unsigned char *>(&result[0]), &ctx);
+  MD5_Final(reinterpret_cast<unsigned char*>(&result[0]), &ctx);
   return result;
 }
-}
+}  // namespace easy

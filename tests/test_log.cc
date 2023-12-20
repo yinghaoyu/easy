@@ -7,8 +7,7 @@
 #include <iostream>
 #include <memory>
 
-void bench(const char *file, bool kLongLog)
-{
+void bench(const char* file, bool kLongLog) {
   auto logger = std::make_shared<easy::Logger>("bench");
 
   easy::LogFormatter::ptr formatter =
@@ -28,8 +27,7 @@ void bench(const char *file, bool kLongLog)
   longStr += " ";
   size_t len = content.length() +
                (kLongLog ? longStr.length() : empty.length()) + sizeof(int);
-  for (size_t i = 0; i < n; ++i)
-  {
+  for (size_t i = 0; i < n; ++i) {
     EASY_LOG_DEBUG(logger) << content << (kLongLog ? longStr : empty) << i;
   }
   easy::Timestamp end = easy::Timestamp::now();
@@ -39,8 +37,7 @@ void bench(const char *file, bool kLongLog)
          static_cast<double>(n * len) / seconds / (1024 * 1024));
 }
 
-void test_logger()
-{
+void test_logger() {
   auto logger = std::make_shared<easy::Logger>("root");
   logger->addAppender(std::make_shared<easy::ConsoleLogAppender>());
 
@@ -72,8 +69,7 @@ void test_logger()
   EASY_LOG_INFO(root) << "root logger";
 }
 
-int main()
-{
+int main() {
   test_logger();
   bench("/dev/null", false);
   bench("/tmp/log", false);

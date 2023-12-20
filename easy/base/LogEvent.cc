@@ -3,17 +3,11 @@
 
 #include <stdarg.h>
 
-namespace easy
-{
-LogEvent::LogEvent(Logger::ptr logger,
-                   LogLevel::Level level,
-                   const char *file,
-                   int32_t line,
-                   uint32_t elapse,
-                   uint32_t threadId,
-                   uint32_t coroutineId,
-                   Timestamp time,
-                   const std::string &threadName)
+namespace easy {
+LogEvent::LogEvent(Logger::ptr logger, LogLevel::Level level, const char* file,
+                   int32_t line, uint32_t elapse, uint32_t threadId,
+                   uint32_t coroutineId, Timestamp time,
+                   const std::string& threadName)
     : fileName_(slash_walk(file, file)),
       line_(line),
       elapse_(elapse),
@@ -22,24 +16,19 @@ LogEvent::LogEvent(Logger::ptr logger,
       timestamp_(time),
       threadName_(threadName),
       logger_(logger),
-      level_(level)
-{
-}
+      level_(level) {}
 
-void LogEvent::format(const char *fmt, ...)
-{
+void LogEvent::format(const char* fmt, ...) {
   va_list al;
   va_start(al, fmt);
   format(fmt, al);
   va_end(al);
 }
 
-void LogEvent::format(const char *fmt, va_list al)
-{
-  char *buf = nullptr;
+void LogEvent::format(const char* fmt, va_list al) {
+  char* buf = nullptr;
   int len = vasprintf(&buf, fmt, al);
-  if (len != -1)
-  {
+  if (len != -1) {
     contentSS_ << std::string(buf, static_cast<size_t>(len));
     free(buf);
   }
@@ -47,8 +36,7 @@ void LogEvent::format(const char *fmt, va_list al)
 
 LogEventRAII::LogEventRAII(LogEvent::ptr e) : event_(e) {}
 
-LogEventRAII::~LogEventRAII()
-{
+LogEventRAII::~LogEventRAII() {
   event_->logger()->log(event_->level(), event_);
   // if (event_->level() == log_level::fatal)
   // {
@@ -56,8 +44,5 @@ LogEventRAII::~LogEventRAII()
   // }
 }
 
-std::stringstream &LogEventRAII::getSS()
-{
-  return event_->contentSS();
-}
+std::stringstream& LogEventRAII::getSS() { return event_->contentSS(); }
 }  // namespace easy

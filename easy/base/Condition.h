@@ -6,12 +6,10 @@
 
 #include <pthread.h>
 
-namespace easy
-{
-class Condition : noncopyable
-{
+namespace easy {
+class Condition : noncopyable {
  public:
-  Condition(MutexLock &mutex);
+  Condition(MutexLock& mutex);
 
   ~Condition();
 
@@ -22,7 +20,7 @@ class Condition : noncopyable
   void notifyAll();
 
  private:
-  MutexLock &lock_;
+  MutexLock& lock_;
   pthread_cond_t pcond_;
 };
 

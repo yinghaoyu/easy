@@ -5,8 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace easy
-{
+namespace easy {
 std::string md5sum(const std::vector<iovec>& data);
 }  // namespace easy
 

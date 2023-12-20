@@ -6,8 +6,7 @@
 
 static easy::Logger::ptr logger = EASY_LOG_ROOT();
 
-void run()
-{
+void run() {
   auto addr = easy::Address::LookupAny("0.0.0.0:12345");
   // auto addr2 = easy::UnixAddress::ptr(new
   // easy::UnixAddress("/tmp/unix_addr"));
@@ -17,14 +16,12 @@ void run()
 
   easy::TcpServer::ptr tcp_server(new easy::TcpServer);
   std::vector<easy::Address::ptr> fails;
-  while (!tcp_server->bind(addrs, fails))
-  {
+  while (!tcp_server->bind(addrs, fails)) {
     sleep(2);
   }
   tcp_server->start();
 }
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   easy::IOManager iom(2);
   iom.schedule(run);
   return 0;

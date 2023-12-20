@@ -5,7 +5,7 @@
 #include <map>
 #include <memory>
 
-#include "easy/base/Coroutine.h"
+#include "easy/base/Fiber.h"
 #include "easy/base/LogEvent.h"
 #include "easy/base/LogLevel.h"
 #include "easy/base/Singleton.h"
@@ -18,7 +18,7 @@
   easy::LogEventRAII(                                                          \
       std::make_shared<easy::LogEvent>(                                        \
           obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
-          easy::Coroutine::CurrentCoroutineId(), easy::Timestamp::now(),       \
+          easy::Fiber::CurrentFiberId(), easy::Timestamp::now(),               \
           easy::Thread::GetCurrentThreadName()))                               \
       .getSS()
 
@@ -34,7 +34,7 @@
   easy::LogEventRAII(                                                          \
       std::make_shared<easy::LogEvent>(                                        \
           obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
-          easy::Coroutine::CurrentCoroutineId(), easy::Timestamp::now(),     \
+          easy::Fiber::CurrentFiberId(), easy::Timestamp::now(),               \
           easy::Thread::GetCurrentThreadName()))                               \
       .event()                                                                 \
       ->format(fmt, __VA_ARGS__)
@@ -55,20 +55,18 @@
 #define EASY_LOG_ROOT() easy::LoggerMgr::GetInstance()->getLogger("root")
 #define EASY_LOG_NAME(name) easy::LoggerMgr::GetInstance()->getLogger(name)
 
-namespace easy
-{
+namespace easy {
 class LogAppender;
 class LogFormatter;
 
 // 日志器
-class Logger : public std::enable_shared_from_this<Logger>
-{
+class Logger : public std::enable_shared_from_this<Logger> {
   friend class LoggerManager;
 
  public:
   typedef std::shared_ptr<Logger> ptr;
 
-  explicit Logger(const std::string &name = "root");
+  explicit Logger(const std::string& name = "root");
   void log(LogLevel::Level level, std::shared_ptr<LogEvent> event);
 
   void trace(std::shared_ptr<LogEvent> event);
@@ -84,10 +82,10 @@ class Logger : public std::enable_shared_from_this<Logger>
   LogLevel::Level level() const { return level_; }
   void setLevel(LogLevel::Level val) { level_ = val; }
 
-  const std::string &name() const { return name_; }
+  const std::string& name() const { return name_; }
 
   void setFormatter(std::shared_ptr<LogFormatter> val);
-  void setFormatter(const std::string &val);
+  void setFormatter(const std::string& val);
   std::shared_ptr<LogFormatter> formatter();
 
   std::string toYamlString();
@@ -103,12 +101,10 @@ class Logger : public std::enable_shared_from_this<Logger>
   Logger::ptr root_;                                   // 根日志器
 };
 
-class LoggerManager : noncopyable
-{
+class LoggerManager : noncopyable {
  public:
   LoggerManager();
-  Logger::ptr getLogger(const std::string &name);
-
+  Logger::ptr getLogger(const std::string& name);
 
   Logger::ptr getRoot() const { return root_; }
 

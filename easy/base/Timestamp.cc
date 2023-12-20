@@ -4,18 +4,15 @@
 #include <sys/time.h>
 #include <string>
 
-namespace easy
-{
-Timestamp Timestamp::now()
-{
+namespace easy {
+Timestamp Timestamp::now() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   int64_t seconds = tv.tv_sec;
   return Timestamp(seconds * kMicroSecondsPerSecond + tv.tv_usec);
 }
 
-std::string Timestamp::toString(const std::string &format) const
-{
+std::string Timestamp::toString(const std::string& format) const {
   std::string date_time_format;
   std::string microsecond_format;
 
@@ -23,12 +20,9 @@ std::string Timestamp::toString(const std::string &format) const
 
   auto dot = format.find_first_of('.');
 
-  if (dot == std::string::npos)
-  {
+  if (dot == std::string::npos) {
     date_time_format = format;
-  }
-  else
-  {
+  } else {
     date_time_format = format.substr(0, dot);
     microsecond_format = format.substr(dot);
   }
@@ -42,8 +36,7 @@ std::string Timestamp::toString(const std::string &format) const
   strftime(buf, sizeof(buf), date_time_format.c_str(), &tm_time);
   ans.append(buf);
 
-  if (!microsecond_format.empty())
-  {
+  if (!microsecond_format.empty()) {
     memset(buf, 0, sizeof(buf));
     int64_t microseconds = microSecondsSinceEpoch_ % kMicroSecondsPerSecond;
     snprintf(buf, sizeof(buf), microsecond_format.c_str(), microseconds);

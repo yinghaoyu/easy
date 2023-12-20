@@ -8,21 +8,17 @@
 #include <sys/socket.h>
 #include <memory>
 
-namespace easy
-{
-class Socket : noncopyable, public std::enable_shared_from_this<Socket>
-{
+namespace easy {
+class Socket : noncopyable, public std::enable_shared_from_this<Socket> {
  public:
   typedef std::shared_ptr<Socket> ptr;
 
-  enum Type
-  {
+  enum Type {
     TCP = SOCK_STREAM,
     UDP = SOCK_DGRAM,
   };
 
-  enum Family
-  {
+  enum Family {
     IPv4 = AF_INET,
     IPv6 = AF_INET6,
     UNIX = AF_UNIX,
@@ -49,20 +45,18 @@ class Socket : noncopyable, public std::enable_shared_from_this<Socket>
   int64_t getRecvTimeout();
   void setRecvTimeout(int64_t v);
 
-  bool getOption(int level, int option, void *result, socklen_t *len);
+  bool getOption(int level, int option, void* result, socklen_t* len);
 
   template <class T>
-  bool getOption(int level, int option, T &result)
-  {
+  bool getOption(int level, int option, T& result) {
     socklen_t length = sizeof(T);
     return getOption(level, option, &result, &length);
   }
 
-  bool setOption(int level, int option, const void *result, socklen_t len);
+  bool setOption(int level, int option, const void* result, socklen_t len);
 
   template <class T>
-  bool setOption(int level, int option, const T &value)
-  {
+  bool setOption(int level, int option, const T& value) {
     return setOption(level, option, &value, sizeof(T));
   }
 
@@ -78,32 +72,24 @@ class Socket : noncopyable, public std::enable_shared_from_this<Socket>
 
   virtual bool close();
 
-  virtual int send(const void *buffer, size_t length, int flags = 0);
+  virtual int send(const void* buffer, size_t length, int flags = 0);
 
-  virtual int send(const iovec *buffers, size_t length, int flags = 0);
+  virtual int send(const iovec* buffers, size_t length, int flags = 0);
 
-  virtual int sendTo(const void *buffer,
-                     size_t length,
-                     const Address::ptr to,
+  virtual int sendTo(const void* buffer, size_t length, const Address::ptr to,
                      int flags = 0);
 
-  virtual int sendTo(const iovec *buffers,
-                     size_t length,
-                     const Address::ptr to,
+  virtual int sendTo(const iovec* buffers, size_t length, const Address::ptr to,
                      int flags = 0);
 
-  virtual int recv(void *buffer, size_t length, int flags = 0);
+  virtual int recv(void* buffer, size_t length, int flags = 0);
 
-  virtual int recv(iovec *buffers, size_t length, int flags = 0);
+  virtual int recv(iovec* buffers, size_t length, int flags = 0);
 
-  virtual int recvFrom(void *buffer,
-                       size_t length,
-                       Address::ptr from,
+  virtual int recvFrom(void* buffer, size_t length, Address::ptr from,
                        int flags = 0);
 
-  virtual int recvFrom(iovec *buffers,
-                       size_t length,
-                       Address::ptr from,
+  virtual int recvFrom(iovec* buffers, size_t length, Address::ptr from,
                        int flags = 0);
 
   Address::ptr getRemoteAddress();
@@ -118,7 +104,7 @@ class Socket : noncopyable, public std::enable_shared_from_this<Socket>
   bool isValid() const;
   int getError();
 
-  virtual std::ostream &dump(std::ostream &os) const;
+  virtual std::ostream& dump(std::ostream& os) const;
 
   virtual std::string toString() const;
 
@@ -144,8 +130,7 @@ class Socket : noncopyable, public std::enable_shared_from_this<Socket>
   Address::ptr remoteAddress_;
 };
 
-class SSLSocket : public Socket
-{
+class SSLSocket : public Socket {
  public:
   typedef std::shared_ptr<SSLSocket> ptr;
 
@@ -166,38 +151,30 @@ class SSLSocket : public Socket
 
   virtual bool close() override;
 
-  virtual int send(const void *buffer, size_t length, int flags = 0) override;
+  virtual int send(const void* buffer, size_t length, int flags = 0) override;
 
-  virtual int send(const iovec *buffers, size_t length, int flags = 0) override;
+  virtual int send(const iovec* buffers, size_t length, int flags = 0) override;
 
-  virtual int sendTo(const void *buffer,
-                     size_t length,
-                     const Address::ptr to,
+  virtual int sendTo(const void* buffer, size_t length, const Address::ptr to,
                      int flags = 0) override;
 
-  virtual int sendTo(const iovec *buffers,
-                     size_t length,
-                     const Address::ptr to,
+  virtual int sendTo(const iovec* buffers, size_t length, const Address::ptr to,
                      int flags = 0) override;
 
-  virtual int recv(void *buffer, size_t length, int flags = 0) override;
+  virtual int recv(void* buffer, size_t length, int flags = 0) override;
 
-  virtual int recv(iovec *buffers, size_t length, int flags = 0) override;
+  virtual int recv(iovec* buffers, size_t length, int flags = 0) override;
 
-  virtual int recvFrom(void *buffer,
-                       size_t length,
-                       Address::ptr from,
+  virtual int recvFrom(void* buffer, size_t length, Address::ptr from,
                        int flags = 0) override;
 
-  virtual int recvFrom(iovec *buffers,
-                       size_t length,
-                       Address::ptr from,
+  virtual int recvFrom(iovec* buffers, size_t length, Address::ptr from,
                        int flags = 0) override;
 
-  bool loadCertificates(const std::string &cert_file,
-                        const std::string &key_file);
+  bool loadCertificates(const std::string& cert_file,
+                        const std::string& key_file);
 
-  virtual std::ostream &dump(std::ostream &os) const override;
+  virtual std::ostream& dump(std::ostream& os) const override;
 
  protected:
   virtual bool init(int sock) override;
@@ -207,7 +184,7 @@ class SSLSocket : public Socket
   std::shared_ptr<SSL> ssl_;
 };
 
-std::ostream &operator<<(std::ostream &os, const Socket &sock);
+std::ostream& operator<<(std::ostream& os, const Socket& sock);
 
 }  // namespace easy
 

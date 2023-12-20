@@ -11,21 +11,17 @@
 #include <set>
 #include <vector>
 
-namespace easy
-{
+namespace easy {
 class TimerManager;
 
-class Timer : noncopyable, public std::enable_shared_from_this<Timer>
-{
+class Timer : noncopyable, public std::enable_shared_from_this<Timer> {
   friend class TimerManager;
 
  public:
   typedef std::shared_ptr<Timer> ptr;
 
-  Timer(int64_t interval,
-        std::function<void()> cb,
-        bool repeat,
-        TimerManager *manager);
+  Timer(int64_t interval, std::function<void()> cb, bool repeat,
+        TimerManager* manager);
 
   Timer(Timestamp time);
 
@@ -36,9 +32,8 @@ class Timer : noncopyable, public std::enable_shared_from_this<Timer>
   bool reset(int64_t interval, bool from_now);
 
  private:
-  struct Comparator
-  {
-    bool operator()(const Timer::ptr &lhs, const Timer::ptr &rhs) const;
+  struct Comparator {
+    bool operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) const;
   };
 
  private:
@@ -46,11 +41,10 @@ class Timer : noncopyable, public std::enable_shared_from_this<Timer>
   int64_t interval_{0};  // ms
   Timestamp expiration_;
   std::function<void()> cb_;
-  TimerManager *manager_ = nullptr;
+  TimerManager* manager_ = nullptr;
 };
 
-class TimerManager : noncopyable
-{
+class TimerManager : noncopyable {
   friend class Timer;
 
  public:
@@ -58,23 +52,20 @@ class TimerManager : noncopyable
 
   virtual ~TimerManager();
 
-  Timer::ptr addTimer(uint64_t interval,
-                      std::function<void()> cb,
+  Timer::ptr addTimer(uint64_t interval, std::function<void()> cb,
                       bool repeat = false);
 
-  Timer::ptr addConditionTimer(uint64_t interval,
-                               std::function<void()> cb,
+  Timer::ptr addConditionTimer(uint64_t interval, std::function<void()> cb,
                                std::weak_ptr<void> weak_cond,
                                bool repeat = false);
 
-  void listExpiredCallback(std::vector<std::function<void()>> &fns);
+  void listExpiredCallback(std::vector<std::function<void()>>& fns);
 
   bool hasTimer();
 
   int timerfd() { return timerfd_; }
 
  protected:
-
   void addTimer(Timer::ptr timer);
 
  private:
