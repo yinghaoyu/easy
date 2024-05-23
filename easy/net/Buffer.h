@@ -120,8 +120,6 @@ class Buffer {
   void addCapacity(size_t size);
   size_t getCapacity() const { return capacity_ - position_; }
 
-  std::string getMd5() const;
-
  private:
   size_t baseSize_;
   size_t position_;

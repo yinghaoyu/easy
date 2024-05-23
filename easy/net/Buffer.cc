@@ -1,5 +1,4 @@
 #include "easy/net/Buffer.h"
-#include "easy/base/HashUtil.h"
 #include "easy/base/Logger.h"
 #include "easy/net/Endian.h"
 
@@ -462,8 +461,6 @@ bool Buffer::writeToFile(const std::string& name, bool with_md5) const {
     read_size -= len;
   }
   if (with_md5) {
-    std::ofstream ofs_md5(name + ".md5");
-    ofs_md5 << getMd5();
   }
 
   return true;
@@ -637,9 +634,4 @@ uint64_t Buffer::getWriteBuffers(std::vector<iovec>& buffers, uint64_t len) {
   return size;
 }
 
-std::string Buffer::getMd5() const {
-  std::vector<iovec> buffers;
-  getReadBuffers(buffers, -1UL, 0);
-  return easy::md5sum(buffers);
-}
 }  // namespace easy

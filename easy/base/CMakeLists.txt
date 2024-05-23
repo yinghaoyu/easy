@@ -17,7 +17,6 @@ set(base_SRCS
   Env.cc
   hook.cc
   FdManager.cc
-  HashUtil.cc
   Channel.cc
   )
 
