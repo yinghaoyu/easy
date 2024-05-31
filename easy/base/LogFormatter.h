@@ -40,7 +40,7 @@ class LogFormatter {
   const std::string pattern() const { return pattern_; }
 
  private:
-  void compile_pattern(const std::string& pattern);
+  void compile(const std::string& pattern);
 
  private:
   std::string pattern_;

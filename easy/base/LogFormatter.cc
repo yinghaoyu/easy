@@ -7,7 +7,7 @@
 
 namespace easy {
 LogFormatter::LogFormatter(const std::string& pattern) : pattern_(pattern) {
-  compile_pattern(pattern);
+  compile(pattern);
 }
 
 std::string LogFormatter::format(std::shared_ptr<Logger> logger,
@@ -28,109 +28,86 @@ std::ostream& LogFormatter::format(std::ostream& ofs,
   return ofs;
 }
 
-void LogFormatter::compile_pattern(const std::string& pattern) {
-  // str, format, type
-  std::vector<std::tuple<std::string, std::string, int>> vec;
-  std::string nstr;
-  for (size_t i = 0; i < pattern.size(); ++i) {
-    if (pattern[i] != '%') {
-      nstr.append(1, pattern[i]);
-      continue;
-    }
+enum STATUS {
+  UNIT,
+  STR,
+};
 
-    if ((i + 1) < pattern.size()) {
-      if (pattern[i + 1] == '%') {
-        nstr.append(1, '%');
-        continue;
-      }
-    }
+void LogFormatter::compile(const std::string& pattern) {
+  size_t n = pattern.size();
 
-    size_t n = i + 1;
-    int fmt_status = 0;
-    size_t fmt_begin = 0;
+  STATUS status = STR;
 
-    std::string str;
-    std::string fmt;
-    while (n < pattern.size()) {
-      if (!fmt_status &&
-          (!isalpha(pattern[n]) && pattern[n] != '{' && pattern[n] != '}')) {
-        str = pattern.substr(i + 1, n - i - 1);
+  std::string A;
+  std::string B;
+
+  std::vector<std::tuple<std::string, std::string, STATUS>> units;
+
+  for (size_t i = 0; i < n; ++i) {
+    switch (status) {
+      case STR: {
+        if (pattern[i] == '%') {
+          status = UNIT;
+        } else {
+          A = pattern[i];
+          units.emplace_back(std::make_tuple(std::move(A), std::move(B), STR));
+        }
+      } break;
+      case UNIT: {
+        A = pattern[i];
+        if (i + 1 < n && pattern[i + 1] == '{') {
+          size_t pos = pattern.find('}', i + 1);
+          if (pos != std::string::npos) {
+            B = pattern.substr(i + 2, pos - i - 2);
+            i = pos;
+          };
+        }
+        units.emplace_back(std::make_tuple(std::move(A), std::move(B), UNIT));
+        status = STR;
+      } break;
+      default:
+        error_ = true;
         break;
-      }
-      if (fmt_status == 0) {
-        if (pattern[n] == '{') {
-          str = pattern.substr(i + 1, n - i - 1);
-          fmt_status = 1;  // 解析格式
-          fmt_begin = n;
-          ++n;
-          continue;
-        }
-      } else if (fmt_status == 1) {
-        if (pattern[n] == '}') {
-          fmt = pattern.substr(fmt_begin + 1, n - fmt_begin - 1);
-          fmt_status = 0;
-          ++n;
-          break;
-        }
-      }
-      ++n;
-      if (n == pattern.size()) {
-        if (str.empty()) {
-          str = pattern.substr(i + 1);
-        }
-      }
     }
+  }
 
-    if (fmt_status == 0) {
-      if (!nstr.empty()) {
-        vec.push_back(std::make_tuple(nstr, std::string(), 0));
-        nstr.clear();
-      }
-      vec.push_back(std::make_tuple(str, fmt, 1));
-      i = n - 1;
-    } else if (fmt_status == 1) {
-      error_ = true;
-      vec.push_back(std::make_tuple("<<pattern_error>>", fmt, 0));
-    }
-  }
-  if (!nstr.empty()) {
-    vec.push_back(std::make_tuple(nstr, "", 0));
-  }
   static std::map<std::string,
                   std::function<FormatItem::ptr(const std::string& str)>>
-      s_format_items = {
+      s_format_units = {
 #define XX(str, C)                                      \
   {                                                     \
     #str, [](const std::string& fmt) {                  \
       return FormatItem::ptr(std::make_shared<C>(fmt)); \
     }                                                   \
   }
-          XX(m, MessageFormatItem),      // m:消息
-          XX(p, LevelFormatItem),        // p:日志级别
-          XX(r, ElapseFormatItem),       // r:累计毫秒数
-          XX(c, NameFormatItem),         // c:日志名称
-          XX(t, ThreadIdFormatItem),     // t:线程id
-          XX(n, NewLineFormatItem),      // n:换行
-          XX(d, DateTimeFormatItem),     // d:时间
-          XX(F, FilenameFormatItem),     // F:文件名
-          XX(L, LineFormatItem),         // L:行号
-          XX(T, TabFormatItem),          // T:Tab
-          XX(b, SpaceFormatItem),        // b:空格
-          XX(C, CoroutineIdFormatItem),  // C:协程id
-          XX(N, ThreadNameFormatItem),   // N:线程名称
+        XX(m, MessageFormatItem),      // m:消息
+        XX(p, LevelFormatItem),        // p:日志级别
+        XX(r, ElapseFormatItem),       // r:累计毫秒数
+        XX(c, NameFormatItem),         // c:日志名称
+        XX(t, ThreadIdFormatItem),     // t:线程id
+        XX(n, NewLineFormatItem),      // n:换行
+        XX(d, DateTimeFormatItem),     // d:时间
+        XX(F, FilenameFormatItem),     // F:文件名
+        XX(L, LineFormatItem),         // L:行号
+        XX(T, TabFormatItem),          // T:Tab
+        XX(b, SpaceFormatItem),        // b:空格
+        XX(C, CoroutineIdFormatItem),  // C:协程id
+        XX(N, ThreadNameFormatItem),   // N:线程名称
 #undef XX
       };
-  for (auto& i : vec) {
-    if (std::get<2>(i) == 0) {
-      items_.push_back(std::make_shared<StringFormatItem>(std::get<0>(i)));
+
+  for (auto& unit : units) {
+    if (std::get<2>(unit) == STR) {
+      items_.emplace_back(
+          std::make_shared<StringFormatItem>(std::get<0>(unit)));
     } else {
-      auto it = s_format_items.find(std::get<0>(i));
-      if (it == s_format_items.end()) {
-        items_.push_back(std::make_shared<StringFormatItem>(
-            "<<error_format %" + std::get<0>(i) + ">>"));
+      auto it = s_format_units.find(std::get<0>(unit));
+      if (it == s_format_units.end()) {
+        items_.emplace_back(std::make_shared<StringFormatItem>(
+            "<<error_format %" + std::get<0>(unit) + ">>"));
         error_ = true;
       } else {
-        items_.push_back(it->second(std::get<1>(i)));
+        items_.push_back(it->second(std::get<1>(unit)));
       }
     }
   }
