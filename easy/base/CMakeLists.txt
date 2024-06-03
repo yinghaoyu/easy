@@ -1,7 +1,7 @@
 set(base_SRCS
   LogLevel.cc
   LogAppender.cc
-  LogEvent.cc
+  LogRecord.cc
   LogFormatter.cc
   Logger.cc
   Fiber.cc

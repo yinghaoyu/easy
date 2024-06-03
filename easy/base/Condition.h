@@ -6,22 +6,24 @@
 
 #include <pthread.h>
 
-namespace easy {
-class Condition : noncopyable {
- public:
-  Condition(MutexLock& mutex);
+namespace easy
+{
+class Condition : noncopyable
+{
+  public:
+    Condition(MutexLock& mutex);
 
-  ~Condition();
+    ~Condition();
 
-  void wait();
+    void wait();
 
-  void notify();
+    void notify();
 
-  void notifyAll();
+    void notifyAll();
 
- private:
-  MutexLock& lock_;
-  pthread_cond_t pcond_;
+  private:
+    MutexLock&     lock_;
+    pthread_cond_t pcond_;
 };
 
 }  // namespace easy

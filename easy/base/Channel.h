@@ -8,36 +8,40 @@
 
 #include <sys/epoll.h>
 
-namespace easy {
-class Channel : noncopyable {
- public:
-  enum Event {
-    NONE = 0x00,
-    READ = EPOLLIN,
-    WRITE = EPOLLOUT,
-  };
+namespace easy
+{
+class Channel : noncopyable
+{
+  public:
+    enum Event
+    {
+        NONE  = 0x00,
+        READ  = EPOLLIN,
+        WRITE = EPOLLOUT,
+    };
 
-  static const int kNoneEvent = 0x00;
-  static const int kReadEvent = EPOLLIN /*| EPOLLPRI*/;
-  static const int kWriteEvent = EPOLLOUT;
+    static const int kNoneEvent  = 0x00;
+    static const int kReadEvent  = EPOLLIN /*| EPOLLPRI*/;
+    static const int kWriteEvent = EPOLLOUT;
 
-  struct EventCtx {
-    Scheduler* scheduler_ = nullptr;
-    Fiber::ptr fiber_;
-    std::function<void()> cb_;
-  };
+    struct EventCtx
+    {
+        Scheduler*            scheduler_ = nullptr;
+        Fiber::ptr            fiber_;
+        std::function<void()> cb_;
+    };
 
-  EventCtx& getEventCtx(Event event);
+    EventCtx& getEventCtx(Event event);
 
-  void cleanUp(EventCtx& ctx);
+    void cleanUp(EventCtx& ctx);
 
-  void handleEvent(Event event);
+    void handleEvent(Event event);
 
-  EventCtx read_;
-  EventCtx write_;
-  int fd_;
-  Event events_ = NONE;
-  SpinLock lock_;
+    EventCtx read_;
+    EventCtx write_;
+    int      fd_;
+    Event    events_ = NONE;
+    SpinLock lock_;
 };
 
 }  // namespace easy

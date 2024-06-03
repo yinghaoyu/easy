@@ -1,46 +1,48 @@
 #include "easy/base/LogLevel.h"
 
-namespace easy {
-const char* LogLevel::toString(LogLevel::Level level) {
-  switch (level) {
-#define XX(name)       \
-  case LogLevel::name: \
-    return #name;      \
-    break;
+namespace easy
+{
+const char* toString(LogLevel level)
+{
+    switch (level)
+    {
+#define XX(name) \
+    case LogLevel::name: return #name; break;
 
-    XX(trace);
-    XX(debug);
-    XX(info);
-    XX(warn);
-    XX(error);
-    XX(fatal);
+        XX(TRACE);
+        XX(DEBUG);
+        XX(INFO);
+        XX(WARN);
+        XX(ERROR);
+        XX(FATAL);
 #undef XX
-    default:
-      return "off";
-  }
-  return "off";
+        default: return "OFF";
+    }
+    return "OFF";
 }
 
-LogLevel::Level LogLevel::fromString(const std::string& str) {
-#define XX(level, v)        \
-  if (str == #v) {          \
-    return LogLevel::level; \
-  }
+LogLevel fromString(const std::string& str)
+{
+#define XX(level, v)            \
+    if (str == #v)              \
+    {                           \
+        return LogLevel::level; \
+    }
 
-  XX(trace, trace);
-  XX(debug, debug);
-  XX(info, info);
-  XX(warn, warn);
-  XX(error, error);
-  XX(fatal, fatal);
+    XX(TRACE, trace);
+    XX(DEBUG, debug);
+    XX(INFO, info);
+    XX(WARN, warn);
+    XX(ERROR, error);
+    XX(FATAL, fatal);
 
-  XX(trace, TRACE);
-  XX(debug, DEBUG);
-  XX(info, INFO);
-  XX(warn, WARN);
-  XX(error, ERROR);
-  XX(fatal, FATAL);
-  return LogLevel::off;
+    XX(TRACE, TRACE);
+    XX(DEBUG, DEBUG);
+    XX(INFO, INFO);
+    XX(WARN, WARN);
+    XX(ERROR, ERROR);
+    XX(FATAL, FATAL);
+    return LogLevel::OFF;
 #undef XX
 }
 }  // namespace easy

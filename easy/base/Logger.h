@@ -6,116 +6,125 @@
 #include <memory>
 
 #include "easy/base/Fiber.h"
-#include "easy/base/LogEvent.h"
+#include "easy/base/LogRecord.h"
 #include "easy/base/LogLevel.h"
+#include "easy/base/Mutex.h"
 #include "easy/base/Singleton.h"
 #include "easy/base/Thread.h"
-#include "easy/base/Timestamp.h"
 #include "easy/base/noncopyable.h"
 
-#define EASY_LOG_LEVEL(obj, lvl)                                               \
-  if (obj->level() <= lvl)                                                     \
-  easy::LogEventRAII(                                                          \
-      std::make_shared<easy::LogEvent>(                                        \
-          obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
-          easy::Fiber::CurrentFiberId(), easy::Timestamp::now(),               \
-          easy::Thread::GetCurrentThreadName()))                               \
-      .getSS()
+#define ELOG_LEVEL(obj, level)                                     \
+    if (obj->getLevel() <= level)                                  \
+    easy::LogRecordRAII(std::make_shared<easy::LogRecord>(obj,     \
+                            level,                                 \
+                            __FILE__,                              \
+                            __LINE__,                              \
+                            __FUNCTION__,                          \
+                            0,                                     \
+                            easy::Thread::GetCurrentThreadId(),    \
+                            easy::Fiber::CurrentFiberId(),         \
+                            easy::Timestamp::now(),                \
+                            easy::Thread::GetCurrentThreadName())) \
+        .getSS()
 
-#define EASY_LOG_TRACE(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::trace)
-#define EASY_LOG_DEBUG(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::debug)
-#define EASY_LOG_INFO(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::info)
-#define EASY_LOG_WARN(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::warn)
-#define EASY_LOG_ERROR(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::error)
-#define EASY_LOG_FATAL(obj) EASY_LOG_LEVEL(obj, easy::LogLevel::fatal)
+#define ELOG_TRACE(obj) ELOG_LEVEL(obj, easy::LogLevel::TRACE)
+#define ELOG_DEBUG(obj) ELOG_LEVEL(obj, easy::LogLevel::DEBUG)
+#define ELOG_INFO(obj) ELOG_LEVEL(obj, easy::LogLevel::INFO)
+#define ELOG_WARN(obj) ELOG_LEVEL(obj, easy::LogLevel::WARN)
+#define ELOG_ERROR(obj) ELOG_LEVEL(obj, easy::LogLevel::ERROR)
+#define ELOG_FATAL(obj) ELOG_LEVEL(obj, easy::LogLevel::FATAL)
 
-#define EASY_LOG_FMT_LEVEL(obj, lvl, fmt, ...)                                 \
-  if (obj->level() <= lvl)                                                     \
-  easy::LogEventRAII(                                                          \
-      std::make_shared<easy::LogEvent>(                                        \
-          obj, lvl, __FILE__, __LINE__, 0, easy::Thread::GetCurrentThreadId(), \
-          easy::Fiber::CurrentFiberId(), easy::Timestamp::now(),               \
-          easy::Thread::GetCurrentThreadName()))                               \
-      .event()                                                                 \
-      ->format(fmt, __VA_ARGS__)
+#define ELOG_FMT_LEVEL(obj, level, fmt, ...)                       \
+    if (obj->getLevel() <= level)                                  \
+    easy::LogRecordRAII(std::make_shared<easy::LogRecord>(obj,     \
+                            level,                                 \
+                            __FILE__,                              \
+                            __LINE__,                              \
+                            __FUNCTION__,                          \
+                            0,                                     \
+                            easy::Thread::GetCurrentThreadId(),    \
+                            easy::Fiber::CurrentFiberId(),         \
+                            easy::Timestamp::now(),                \
+                            easy::Thread::GetCurrentThreadName())) \
+        .getRecord()                                               \
+        ->format(fmt, __VA_ARGS__)
 
-#define EASY_LOG_FMT_TRACE(obj, fmt, ...) \
-  EASY_LOG_FMT_LEVEL(obj, easy::LogLevel::trace, fmt, __VA_ARGS__)
-#define EASY_LOG_FMT_DEBUG(obj, fmt, ...) \
-  EASY_LOG_FMT_LEVEL(obj, easy::LogLevel::debug, fmt, __VA_ARGS__)
-#define EASY_LOG_FMT_INFO(obj, fmt, ...) \
-  EASY_LOG_FMT_LEVEL(obj, easy::LogLevel::info, fmt, __VA_ARGS__)
-#define EASY_LOG_FMT_WARN(obj, fmt, ...) \
-  EASY_LOG_FMT_LEVEL(obj, easy::LogLevel::warn, fmt, __VA_ARGS__)
-#define EASY_LOG_FMT_ERROR(obj, fmt, ...) \
-  EASY_LOG_FMT_LEVEL(obj, easy::LogLevel::error, fmt, __VA_ARGS__)
-#define EASY_LOG_FMT_FATAL(obj, fmt, ...) \
-  EASY_LOG_FMT_LEVEL(obj, easy::LogLevel::fatal, fmt, __VA_ARGS__)
+#define ELOG_FMT_TRACE(obj, fmt, ...) ELOG_FMT_LEVEL(obj, easy::LogLevel::TRACE, fmt, __VA_ARGS__)
+#define ELOG_FMT_DEBUG(obj, fmt, ...) ELOG_FMT_LEVEL(obj, easy::LogLevel::DEBUG, fmt, __VA_ARGS__)
+#define ELOG_FMT_INFO(obj, fmt, ...) ELOG_FMT_LEVEL(obj, easy::LogLevel::INFO, fmt, __VA_ARGS__)
+#define ELOG_FMT_WARN(obj, fmt, ...) ELOG_FMT_LEVEL(obj, easy::LogLevel::WARN, fmt, __VA_ARGS__)
+#define ELOG_FMT_ERROR(obj, fmt, ...) ELOG_FMT_LEVEL(obj, easy::LogLevel::ERROR, fmt, __VA_ARGS__)
+#define ELOG_FMT_FATAL(obj, fmt, ...) ELOG_FMT_LEVEL(obj, easy::LogLevel::FATAL, fmt, __VA_ARGS__)
 
-#define EASY_LOG_ROOT() easy::LoggerMgr::GetInstance()->getLogger("root")
-#define EASY_LOG_NAME(name) easy::LoggerMgr::GetInstance()->getLogger(name)
+#define ELOG_ROOT() easy::LoggerMgr::GetInstance()->getLogger("root")
+#define ELOG_NAME(name) easy::LoggerMgr::GetInstance()->getLogger(name)
 
-namespace easy {
+namespace easy
+{
 class LogAppender;
 class LogFormatter;
 
-// 日志器
-class Logger : public std::enable_shared_from_this<Logger> {
-  friend class LoggerManager;
+class Logger : public std::enable_shared_from_this<Logger>
+{
+    friend class LoggerManager;
 
- public:
-  typedef std::shared_ptr<Logger> ptr;
+  public:
+    typedef std::shared_ptr<Logger> ptr;
 
-  explicit Logger(const std::string& name = "root");
-  void log(LogLevel::Level level, std::shared_ptr<LogEvent> event);
+    explicit Logger(const std::string& name = "root");
 
-  void trace(std::shared_ptr<LogEvent> event);
-  void debug(std::shared_ptr<LogEvent> event);
-  void info(std::shared_ptr<LogEvent> event);
-  void warn(std::shared_ptr<LogEvent> event);
-  void error(std::shared_ptr<LogEvent> event);
-  void fatal(std::shared_ptr<LogEvent> event);
+    void log(LogLevel level, std::shared_ptr<LogRecord> record);
 
-  void addAppender(std::shared_ptr<LogAppender> sink);
-  void deleteAppender(std::shared_ptr<LogAppender> sink);
-  void clearAppender();
-  LogLevel::Level level() const { return level_; }
-  void setLevel(LogLevel::Level val) { level_ = val; }
+    void trace(std::shared_ptr<LogRecord> record);
+    void debug(std::shared_ptr<LogRecord> record);
+    void info(std::shared_ptr<LogRecord> record);
+    void warn(std::shared_ptr<LogRecord> record);
+    void error(std::shared_ptr<LogRecord> record);
+    void fatal(std::shared_ptr<LogRecord> record);
 
-  const std::string& name() const { return name_; }
+    void addAppender(std::shared_ptr<LogAppender> sink);
+    void deleteAppender(std::shared_ptr<LogAppender> sink);
+    void clearAppender();
 
-  void setFormatter(std::shared_ptr<LogFormatter> val);
-  void setFormatter(const std::string& val);
-  std::shared_ptr<LogFormatter> formatter();
+    LogLevel getLevel() const { return level_; }
+    void     setLevel(LogLevel val) { level_ = val; }
 
-  std::string toYamlString();
+    const std::string& getName() const { return name_; }
 
-  bool reopen();
+    void setFormatter(std::shared_ptr<LogFormatter> val);
+    void setFormatter(const std::string& val);
 
- private:
-  std::string name_;       // 日志名称
-  LogLevel::Level level_;  // 日志级别
-  RWLock lock_;
-  std::list<std::shared_ptr<LogAppender>> appenders_;  // appenders 集合
-  std::shared_ptr<LogFormatter> formatter_;            // 默认的 formatter
-  Logger::ptr root_;                                   // 根日志器
+    std::shared_ptr<LogFormatter> getFormatter();
+
+    std::string toYamlString();
+
+    bool reopen();
+
+  private:
+    std::string                             name_;   // 日志名称
+    LogLevel                                level_;  // 日志级别
+    ReadWriteLock                           lock_;
+    std::list<std::shared_ptr<LogAppender>> appenders_;  // appenders 集合
+    std::shared_ptr<LogFormatter>           formatter_;  // 默认的 formatter
+    Logger::ptr                             root_;       // 根日志器
 };
 
-class LoggerManager : noncopyable {
- public:
-  LoggerManager();
-  Logger::ptr getLogger(const std::string& name);
+class LoggerManager : noncopyable
+{
+  public:
+    LoggerManager();
+    Logger::ptr getLogger(const std::string& name);
 
-  Logger::ptr getRoot() const { return root_; }
+    Logger::ptr getRoot() const { return root_; }
 
-  std::string toYamlString();
+    std::string toYamlString();
 
-  bool reopen();
+    bool reopen();
 
- private:
-  RWLock lock_;
-  std::map<std::string, Logger::ptr> loggers_;
-  Logger::ptr root_;  // 根日志器
+  private:
+    ReadWriteLock                      lock_;
+    std::map<std::string, Logger::ptr> loggers_;
+    Logger::ptr                        root_;  // 根日志器
 };
 
 typedef easy::Singleton<LoggerManager> LoggerMgr;

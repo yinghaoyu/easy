@@ -4,96 +4,109 @@
 
 #include <sys/stat.h>
 
-namespace easy {
+namespace easy
+{
 
-static easy::Logger::ptr logger = EASY_LOG_NAME("system");
+static easy::Logger::ptr logger = ELOG_NAME("system");
 
-ConfigVarBase::ptr Config::LookupBase(const std::string& name) {
-  ReadLockGuard lock(GetLock());
-  auto it = GetDatas().find(name);
-  return it == GetDatas().end() ? nullptr : it->second;
+ConfigVarBase::ptr Config::LookupBase(const std::string& name)
+{
+    ReadLockGuard _(GetLock());
+    auto          it = GetDatas().find(name);
+    return it == GetDatas().end() ? nullptr : it->second;
 }
 
-static void ListAllMember(
-    const std::string& prefix, const YAML::Node& node,
-    std::list<std::pair<std::string, const YAML::Node>>& output) {
-  if (prefix.find_first_not_of("abcdefghikjlmnopqrstuvwxyz._0123456789") !=
-      std::string::npos) {
-    EASY_LOG_ERROR(logger) << "Config invalid name: " << prefix << " : "
-                           << node;
-    return;
-  }
-  output.push_back(std::make_pair(prefix, node));
-  if (node.IsMap()) {
-    for (auto it = node.begin(); it != node.end(); ++it) {
-      ListAllMember(prefix.empty() ? it->first.Scalar()
-                                   : prefix + "." + it->first.Scalar(),
-                    it->second, output);
+static void ListAllMember(const std::string& prefix, const YAML::Node& node, std::list<std::pair<std::string, const YAML::Node>>& output)
+{
+    if (prefix.find_first_not_of("abcdefghikjlmnopqrstuvwxyz._0123456789") != std::string::npos)
+    {
+        ELOG_ERROR(logger) << "Config invalid name: " << prefix << " : " << node;
+        return;
     }
-  }
+    output.push_back(std::make_pair(prefix, node));
+    if (node.IsMap())
+    {
+        for (auto it = node.begin(); it != node.end(); ++it)
+        {
+            ListAllMember(prefix.empty() ? it->first.Scalar() : prefix + "." + it->first.Scalar(), it->second, output);
+        }
+    }
 }
 
-void Config::LoadFromYaml(const YAML::Node& root) {
-  std::list<std::pair<std::string, const YAML::Node>> all_nodes;
-  ListAllMember("", root, all_nodes);
+void Config::LoadFromYaml(const YAML::Node& root)
+{
+    std::list<std::pair<std::string, const YAML::Node>> all_nodes;
+    ListAllMember("", root, all_nodes);
 
-  for (auto& i : all_nodes) {
-    std::string key = i.first;
-    if (key.empty()) {
-      continue;
+    for (auto& i : all_nodes)
+    {
+        std::string key = i.first;
+        if (key.empty())
+        {
+            continue;
+        }
+
+        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+        ConfigVarBase::ptr var = LookupBase(key);
+
+        if (var)
+        {
+            if (i.second.IsScalar())
+            {
+                var->fromString(i.second.Scalar());
+            }
+            else
+            {
+                std::stringstream ss;
+                ss << i.second;
+                var->fromString(ss.str());
+            }
+        }
     }
-
-    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-    ConfigVarBase::ptr var = LookupBase(key);
-
-    if (var) {
-      if (i.second.IsScalar()) {
-        var->fromString(i.second.Scalar());
-      } else {
-        std::stringstream ss;
-        ss << i.second;
-        var->fromString(ss.str());
-      }
-    }
-  }
 }
 
 static std::map<std::string, uint64_t> s_file2modifytime;
-static MutexLock s_mutex;
+static MutexLock                       s_mutex;
 
-void Config::LoadFromConfDir(const std::string& path, bool force) {
-  std::string absoulte_path =
-      easy::EnvMgr::GetInstance()->getAbsolutePath(path);
-  std::vector<std::string> files;
-  FileUtil::ListAllFile(files, absoulte_path, ".yml");
+void Config::LoadFromConfDir(const std::string& path, bool force)
+{
+    std::string              absoulte_path = easy::EnvMgr::GetInstance()->getAbsolutePath(path);
+    std::vector<std::string> files;
+    FileUtil::ListAllFile(files, absoulte_path, ".yml");
 
-  for (auto& i : files) {
+    for (auto& i : files)
     {
-      struct stat st;
-      lstat(i.c_str(), &st);
-      MutexLockGuard lock(s_mutex);
-      if (!force &&
-          s_file2modifytime[i] == static_cast<uint64_t>(st.st_mtime)) {
-        continue;
-      }
-      s_file2modifytime[i] = static_cast<uint64_t>(st.st_mtime);
+        {
+            struct stat st;
+            lstat(i.c_str(), &st);
+            MutexLockGuard lock(s_mutex);
+            if (!force && s_file2modifytime[i] == static_cast<uint64_t>(st.st_mtime))
+            {
+                continue;
+            }
+            s_file2modifytime[i] = static_cast<uint64_t>(st.st_mtime);
+        }
+        try
+        {
+            YAML::Node root = YAML::LoadFile(i);
+            LoadFromYaml(root);
+            ELOG_INFO(logger) << "LoadConfFile file=" << i << " ok";
+        }
+        catch (...)
+        {
+            ELOG_ERROR(logger) << "LoadConfFile file=" << i << " failed";
+        }
     }
-    try {
-      YAML::Node root = YAML::LoadFile(i);
-      LoadFromYaml(root);
-      EASY_LOG_INFO(logger) << "LoadConfFile file=" << i << " ok";
-    } catch (...) {
-      EASY_LOG_ERROR(logger) << "LoadConfFile file=" << i << " failed";
-    }
-  }
 }
 
-void Config::Visit(std::function<void(ConfigVarBase::ptr)> cb) {
-  ReadLockGuard lock(GetLock());
-  ConfigVarMap& m = GetDatas();
-  for (auto it = m.begin(); it != m.end(); ++it) {
-    cb(it->second);
-  }
+void Config::Visit(std::function<void(ConfigVarBase::ptr)> cb)
+{
+    ReadLockGuard _(GetLock());
+    ConfigVarMap& m = GetDatas();
+    for (auto it = m.begin(); it != m.end(); ++it)
+    {
+        cb(it->second);
+    }
 }
 
 }  // namespace easy

@@ -8,76 +8,77 @@
 #include <fstream>
 #include <memory>
 
-namespace easy {
+namespace easy
+{
 class Logger;
-class LogEvent;
+class LogRecord;
 class LogFormatter;
 
 // 抽象类
-class LogAppender {
-  friend class Logger;
+class LogAppender
+{
+    friend class Logger;
 
- public:
-  typedef std::shared_ptr<LogAppender> ptr;
+  public:
+    typedef std::shared_ptr<LogAppender> ptr;
 
-  LogAppender() = default;
-  virtual ~LogAppender() = default;
+    LogAppender()          = default;
+    virtual ~LogAppender() = default;
 
-  virtual void log(std::shared_ptr<Logger> logger, LogLevel::Level level,
-                   std::shared_ptr<LogEvent> event) = 0;
+    virtual void log(std::shared_ptr<Logger> logger, LogLevel level, std::shared_ptr<LogRecord> event) = 0;
 
-  virtual std::string toYamlString() = 0;
+    virtual std::string toYamlString() = 0;
 
-  void setFormatter(std::shared_ptr<LogFormatter> val);
+    void setFormatter(std::shared_ptr<LogFormatter> val);
 
-  std::shared_ptr<LogFormatter> getFormatter();
+    std::shared_ptr<LogFormatter> getFormatter();
 
-  bool shouldLog(LogLevel::Level) const;
+    bool shouldLog(LogLevel) const;
 
-  LogLevel::Level level() const { return level_; }
+    LogLevel getLevel() const { return level_; }
 
-  void setLevel(LogLevel::Level val) { level_ = val; }
+    void setLevel(LogLevel val) { level_ = val; }
 
-  virtual bool reopen() { return true; }
+    virtual bool reopen() { return true; }
 
- protected:
-  LogLevel::Level level_ = LogLevel::trace;
-  bool hasFormatter_ = false;
-  SpinLock lock_;
-  std::shared_ptr<LogFormatter> formatter_;
+  protected:
+    LogLevel                      level_        = LogLevel::TRACE;
+    bool                          hasFormatter_ = false;
+    SpinLock                      lock_;
+    std::shared_ptr<LogFormatter> formatter_;
 };
 
 // 输出到控制台
-class ConsoleLogAppender : public LogAppender {
- public:
-  typedef std::shared_ptr<ConsoleLogAppender> ptr;
+class ConsoleLogAppender : public LogAppender
+{
+  public:
+    typedef std::shared_ptr<ConsoleLogAppender> ptr;
 
-  void log(std::shared_ptr<Logger> logger, LogLevel::Level level,
-           std::shared_ptr<LogEvent> event) override;
+    void log(std::shared_ptr<Logger> logger, LogLevel level, std::shared_ptr<LogRecord> event) override;
 
-  std::string toYamlString() override;
+    std::string toYamlString() override;
 };
 
 // 输出到文件
-class FileLogAppender : public LogAppender {
- public:
-  typedef std::shared_ptr<FileLogAppender> ptr;
+class FileLogAppender : public LogAppender
+{
+  public:
+    typedef std::shared_ptr<FileLogAppender> ptr;
 
-  FileLogAppender(const std::string& filename);
+    FileLogAppender(const std::string& filename);
 
-  void log(std::shared_ptr<Logger> logger, LogLevel::Level level,
-           std::shared_ptr<LogEvent> event) override;
+    void log(std::shared_ptr<Logger> logger, LogLevel level, std::shared_ptr<LogRecord> event) override;
 
-  std::string toYamlString() override;
+    std::string toYamlString() override;
 
-  bool reopen() override;
+    bool reopen() override;
 
- private:
-  std::string filename_;
-  std::ofstream filestream_;
-  Timestamp lastTime_;
+  private:
+    std::string   filename_;
+    std::ofstream filestream_;
+    Timestamp     lastTime_;
 
-  static const int kRoutineIntervalMs = 3000;
+    static const int kRoutineIntervalMs = 3000;
 };
 
 }  // namespace easy
