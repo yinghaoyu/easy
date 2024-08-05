@@ -333,19 +333,15 @@ void IOManager::idle()
             epoll_event* event = events_[static_cast<size_t>(i)];
             if (event->data.fd == weakupFds_[0])
             {
-                uint8_t dummy[256];
-                // EPOLLET
-                while (read(weakupFds_[0], dummy, sizeof(dummy)) > 0)
-                    ;
+                char dummy[256];
+                while (read(weakupFds_[0], dummy, sizeof(dummy)) > 0) { /*EPOLLET*/ }
                 continue;
             }
 
             if (event->data.fd == timerfd())
             {
-                uint8_t dummy[256];
-                // EPOLLET
-                while (read(timerfd(), dummy, sizeof(dummy)) > 0)
-                    ;
+                char dummy[256];
+                while (read(timerfd(), dummy, sizeof(dummy)) > 0) { /*EPOLLET*/ }
                 std::vector<std::function<void()>> cbs;
                 listExpiredCallback(cbs);
                 if (!cbs.empty())
