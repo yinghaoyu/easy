@@ -4,6 +4,7 @@
 #include <cxxabi.h>
 #include <boost/lexical_cast.hpp>
 #include <memory>
+#include <vector>
 
 namespace easy
 {
